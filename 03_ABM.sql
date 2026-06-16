@@ -61,7 +61,7 @@ END
 GO
 
 
-CREATE OR ALTER sp_ModificacionParque
+CREATE OR ALTER PROCEDURE Parques.sp_ModificacionParque
     @idParque     INT,
     @idTipoParque INT,
     @nombre       VARCHAR(50),
@@ -102,7 +102,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE sp_BajaParque
+CREATE OR ALTER PROCEDURE Parques.sp_BajaParque
     @idParque INT
 AS
 BEGIN
@@ -113,31 +113,31 @@ BEGIN
         SELECT 1 FROM Parques.Parque
         WHERE idParque = @idParque
     )
-    SET @errores += 'No existe el parque ingresado.' + CHAR(10)
+        SET @errores += 'No existe el parque ingresado.' + CHAR(10)
 
     IF NOT EXISTS (
         SELECT 1 FROM Actividades.ActividadTuristica
         WHERE idParque = @idParque
     )
-    SET @errores += 'No se puede eliminar porque existen Actividades Turisticas en el parque.' + CHAR(10)
+        SET @errores += 'No se puede eliminar porque existen Actividades Turisticas en el parque.' + CHAR(10)
 
     IF NOT EXISTS (
         SELECT 1 FROM Personal.HistorialGuardaparque
         WHERE idParque = @idParque
     )
-    SET @errores += 'No se puede eliminar porque existen Historial de Guardaparque en el parque.' + CHAR(10)
+        SET @errores += 'No se puede eliminar porque existen Historial de Guardaparque en el parque.' + CHAR(10)
 
     IF NOT EXISTS (
         SELECT 1 FROM Concesiones.Concesion
         WHERE idParque = @idParque
     )
-    SET @errores += 'No se puede eliminar porque existen Concesiones en el parque.' + CHAR(10)
+        SET @errores += 'No se puede eliminar porque existen Concesiones en el parque.' + CHAR(10)
 
     IF NOT EXISTS (
         SELECT 1 FROM Ventas.Entrada
         WHERE idParque = @idParque
     )
-    SET @errores += 'No se puede eliminar porque existen Entradas en el parque.' + CHAR(10)
+        SET @errores += 'No se puede eliminar porque existen Entradas en el parque.' + CHAR(10)
 
     IF @errores <> ''
     BEGIN 
@@ -149,6 +149,111 @@ BEGIN
     WHERE idParque = @idParque
 END
 GO
+
+
+-- ==========================================================
+-- TABLA TipoParque
+-- ==========================================================
+CREATE OR ALTER PROCEDURE Parques.sp_AltaTipoParque
+    @nombre      VARCHAR(30),
+    @descripcion VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON
+    DECLARE @errores VARCHAR(1000) = ''
+
+    IF ISNULL (@nombre, '') = ''
+        SET @errores += '- Nombre de Tipo Parque no ingresado' + CHAR(10)
+    ELSE IF EXISTS (
+        SELECT 1 FROM Parques.TipoParque
+        WHERE nombre = @nombre
+    )
+        SET @errores += '- Tipo Parque ya existe' + CHAR(10)
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1)
+        RETURN
+    END
+
+    INSERT INTO Parques.TipoParque
+        (nombre, descripcion)
+    VALUES
+        (@nombre, @descripcion)
+    
+    SELECT SCOPE_IDENTITY() AS idTipoParqueNuevo
+END
+GO
+
+
+CREATE OR ALTER PROCEDURE Parques.sp_ModificacionTipoParque
+    @idTipoParque INT,
+    @nombre       VARCHAR(30),
+    @descripcion  VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON
+    DECLARE @errores VARCHAR(1000) = ''
+
+    IF NOT EXISTS (
+        SELECT 1 FROM Parques.TipoParque
+        WHERE idParque = @idParque
+    )
+        SET @errores += '- No existe el Tipo Parque ingresado.' + CHAR(10)
+    
+    IF ISNULL (@nombre, '') = ''
+        SET @errores += '- Nombre de Tipo Parque no ingresado' + CHAR(10)
+    ELSE IF EXISTS (
+        SELECT 1 FROM Parques.TipoParque
+        WHERE nombre = @nombre
+    )
+        SET @errores += '- Tipo Parque ya existe' + CHAR(10)
+    
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1)
+        RETURN
+    END
+
+    UPDATE Parques.TipoParque
+    SET nombre = @nombre, descripcion = @descripcion
+    WHERE idTipoParque = @idTipoParque
+END
+GO
+
+
+CREATE OR ALTER PROCEDURE sp_BajaTipoParque
+    @idTipoParque INT,
+    @nombre       VARCHAR(30),
+    @descripcion  VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON
+    DECLARE @errores VARCHAR(1000) = ''
+
+    IF NOT EXISTS (
+        SELECT 1 FROM Parques.TipoParque
+        WHERE idTipoParque = @idTipoParque
+    )
+        SET @errores += '- Tipo Parque ingresado no existe.' + CHAR(10)
+
+    IF EXISTS (
+        SELECT 1 FROM Parques.Parque
+        WHERE idTipoParque = @idTipoParque
+    )
+        SET @errores += '- No se puede eliminar porque existen Parques registrados.'
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1)
+        RETURN
+    END
+
+    DELETE FROM Parques.TipoParque
+    WHERE idTipoParque = @idTipoParque
+END
+GO
+
 
 -- ==========================================================
 -- TABLA Guardaparque
@@ -168,33 +273,33 @@ BEGIN
 
     -- Validacion NOMBRE
     IF ISNULL (@nombre,'') = ''
-    SET @errores += '- Nombre no ingresado.' + CHAR(10)
+        SET @errores += '- Nombre no ingresado.' + CHAR(10)
 
     -- Validacion APELLIDO
     IF ISNULL (@apellido,'') = ''
-    SET @errores += '- Apellido no ingresado.' + CHAR(10)
+        SET @errores += '- Apellido no ingresado.' + CHAR(10)
 
     -- Validacion FECHA NACIMIENTO
     IF ISNULL (@fechaNacimiento,'') = ''
-    SET @errores += '- Fecha de nacimiento no ingresada.' + CHAR(10)
+        SET @errores += '- Fecha de nacimiento no ingresada.' + CHAR(10)
 
     -- Validacion TIPO Y NRO DOCUMENTO
     IF EXISTS (
         SELECT 1 FROM Personal.Guardaparque
         WHERE tipoDocumento = @tipoDocumento AND nroDocumento = @nroDocumento
     )
-    SET @errores += '- Tipo y Nro de documento ya existen.' + CHAR(10)
+        SET @errores += '- Tipo y Nro de documento ya existen.' + CHAR(10)
 
     -- Validacion EMAIL
     IF EXISTS (
         SELECT 1 FROM Personal.Guardaparque
         WHERE email = @email
     )
-    SET @errores += '- Email ya registrado.' + CHAR(10)
+        SET @errores += '- Email ya registrado.' + CHAR(10)
 
     -- Validacion FECHA INGRESO
     IF EXISTS (@fechaIngresoCargo > CAST(GETDATE() AS DATE))
-    SET @errores += '- Fecha invalida.' + CHAR(10)
+        SET @errores += '- Fecha invalida.' + CHAR(10)
 
     IF @errores <> ''
     BEGIN
@@ -233,16 +338,16 @@ BEGIN
         SELECT 1 FROM Personal.Guardaparque
         WHERE idGuardaparque = @idGuardaparque
     )
-    SET @errores += '- Id de guardaparques no existe.' + CHAR(10)
+        SET @errores += '- Id de guardaparques no existe.' + CHAR(10)
 
     IF (@fechaEgresoCargo IS NOT NULL AND @fechaIngresoCargo < @fechaIngresoCargo)
-    SET @errores += '- Fecha de egreso no puede ser menor a ingreso.' + CHAR(10)
+        SET @errores += '- Fecha de egreso no puede ser menor a ingreso.' + CHAR(10)
 
     IF EXISTS (
         SELECT 1 FROM Personal.Guardaparque
         WHERE tipoDocumento = @tipoDocumento AND nroDocumento = @nroDocumento
     )
-    SET @errores += '- Documento ya existente' + CHAR(10)
+        SET @errores += '- Documento ya existente' + CHAR(10)
 
     IF @errores <> ''
     BEGIN
@@ -272,7 +377,7 @@ BEGIN
         SELECT 1 FROM Personal.Guardaparque
         WHERE idGuardaparque = @idGuardaparque
     )
-    SET @errores += '- Guardaparque no existe.' + CHAR(10)
+        SET @errores += '- Guardaparque no existe.' + CHAR(10)
 
     IF @errores <> ''
     BEGIN
@@ -285,6 +390,7 @@ BEGIN
     WHERE idGuardaparque = @idGuardaparque
 END
 GO
+
 
 -- ==========================================================
 -- TABLA HistorialGuardaparque
@@ -303,16 +409,16 @@ BEGIN
         SELECT 1 FROM Parques.Parque
         WHERE idParque = @idParque
     )
-    SET @errores += '- El parque no existe.' + CHAR(10)
+        SET @errores += '- El parque no existe.' + CHAR(10)
 
     IF NOT EXISTS (
         SELECT 1 FROM Personal.Guardaparque
         WHERE idGuardaparque = @idGuardaparque
     )
-    SET @errores += '- El guardaparque no existe.' + CHAR(10)
+        SET @errores += '- El guardaparque no existe.' + CHAR(10)
 
     IF @fechaEgreso IS NOT NULL AND @fechaEgreso < @fechaIngreso
-    SET @errores += '- Fecha de agreso no puede ser menor a ingreso' + CHAR(10)
+        SET @errores += '- Fecha de agreso no puede ser menor a ingreso' + CHAR(10)
 
     IF @errores <> ''
     BEGIN
@@ -345,16 +451,16 @@ BEGIN
         SELECT 1 FROM Parques.Parque
         WHERE idParque = @idParque
     )
-    SET @errores += '- El parque no existe.' + CHAR(10)
+        SET @errores += '- El parque no existe.' + CHAR(10)
 
     IF NOT EXISTS (
         SELECT 1 FROM Personal.Guardaparque
         WHERE idGuardaparque = @idGuardaparque
     )
-    SET @errores += '- El guardaparque no existe.' + CHAR(10)
+        SET @errores += '- El guardaparque no existe.' + CHAR(10)
 
     IF @fechaEgreso IS NOT NULL AND @fechaEgreso < @fechaIngreso
-    SET @errores += '- Fecha de agreso no puede ser menor a ingreso' + CHAR(10)
+        SET @errores += '- Fecha de agreso no puede ser menor a ingreso' + CHAR(10)
 
     IF @errores <> ''
     BEGIN
@@ -381,7 +487,7 @@ BEGIN
         SELECT 1 FROM Personal.HistorialGuardaparque
         WHERE idHistorial = @idHistorial
     )
-    SET @errores += '- Historial de Guardaparque no existe.' + CHAR(10)
+        SET @errores += '- Historial de Guardaparque no existe.' + CHAR(10)
 
     IF @errores <> ''
     BEGIN
