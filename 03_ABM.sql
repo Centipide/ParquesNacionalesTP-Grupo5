@@ -1056,6 +1056,29 @@ END
 GO
 
 
+CREATE OR ALTER PROCEDURE Personal.sp_EliminarGuardaparque
+    @idGuardaparque     INT
+AS
+BEGIN
+    SET NOCOUNT ON
+    DECLARE @errores VARCHAR(100) = ''
+
+    IF EXISTS (
+        SELECT 1 FROM Personal.HistorialGuardaparque
+        WHERE idGuardaparque = @idGuardaparque
+    )
+        SET @errores += '- No se puede eliminar porque Guardapaque posee Historial.'
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR (@errores, 16, 1)
+        RETURN
+    END
+
+    DELETE FROM Personal.Guardaparque
+    WHERE idGuardaparque = @idGuardaparque
+END
+GO
 -- ==========================================================
 -- TABLA HistorialGuardaparque
 -- ==========================================================
@@ -1161,6 +1184,31 @@ BEGIN
 
     UPDATE Personal.HistorialGuardaparque
     SET fechaEgreso = CAST(GETDATE() AS DATE)
+    WHERE idHistorial = @idHistorial
+END
+GO
+
+
+CREATE OR ALTER PROCEDURE Personal.sp_EliminarHistorialGuardaparque
+    @idHistorial     INT
+AS
+BEGIN
+    SET NOCOUNT ON
+    DECLARE @errores VARCHAR(100) = ''
+
+    IF EXISTS (
+        SELECT 1 FROM Personal.HistorialGuardaparque
+        WHERE idHistorial = @idHistorial
+    )
+        SET @errores += '- No se puede eliminar Historial inexistente.'
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR (@errores, 16, 1)
+        RETURN
+    END
+
+    DELETE FROM Personal.HistorialGuardaparque
     WHERE idHistorial = @idHistorial
 END
 GO
