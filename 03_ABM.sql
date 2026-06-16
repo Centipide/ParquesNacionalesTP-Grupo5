@@ -612,53 +612,8 @@ BEGIN
     INSERT INTO Actividades.Contratacion (idDetalleContratacion, idActividadProgramada, costo, estado, cantidadPersonas)
     VALUES (@idDetalleContratacion, @idActividadProgramada, @costo, @estado, @cantidadPersonas);
 
--- ==========================================================
--- TABLA Parque
--- ==========================================================
-CREATE OR ALTER PROCEDURE Parques.sp_AltaParque
-    @idTipoParque INT,
-    @nombre       VARCHAR(50),
-    @localidad    VARCHAR(50),
-    @provincia    VARCHAR(30),
-    @superficie   DECIMAL(10,2)
-AS
-BEGIN
-    SET NOCOUNT ON
-    DECLARE @errores VARCHAR(1000) = ''
-
-    IF NOT EXISTS(
-        SELECT 1 FROM Parques.TipoParque
-        WHERE idTipoParque = @idTipoParque
-    )
-    SET @errores += '- El tipo de parque no existe.' + CHAR(10)
-
-    IF ISNULL(@nombre,'') = ''
-    SET @errores += '- Falta ingresar nombre.' + CHAR(10)
-
-    IF ISNULL(@localidad,'') = ''
-    SET @errores += '- Falta ingresar localidad.' + CHAR(10)
-
-    IF ISNULL(@provincia,'') = ''
-    SET @errores += '- Falta ingresar provincia.' + CHAR(10)
-
-    IF @superficie <= 0
-    SET @errores += '- Superficie ingresada no valida.' + CHAR(10)
-
-    IF @errores <> ''
-    BEGIN
-        RAISERROR(@errores, 16, 1)
-        RETURN
-    END
-
-    INSERT INTO Parques.Parque
-        (idTipoParque, nombre, localidad, provincia, superficie)
-    VALUES
-        (@idTipoParque, @nombre, @localidad, @provincia, @superficie)
-    
-    SELECT SCOPE_IDENTITY() AS idParqueNuevo
 END
 GO
-
 
 CREATE OR ALTER PROCEDURE Actividades.sp_ModificarContratacion
     @idContratacion         INT,
@@ -715,6 +670,54 @@ GO
     Al igual que con las actividades Programadas, hicimos
     cancelación lógica, en 07_logicaRegistroActividades
 */
+
+-- ==========================================================
+-- TABLA Parque
+-- ==========================================================
+CREATE OR ALTER PROCEDURE Parques.sp_AltaParque
+    @idTipoParque INT,
+    @nombre       VARCHAR(50),
+    @localidad    VARCHAR(50),
+    @provincia    VARCHAR(30),
+    @superficie   DECIMAL(10,2)
+AS
+BEGIN
+    SET NOCOUNT ON
+    DECLARE @errores VARCHAR(1000) = ''
+
+    IF NOT EXISTS(
+        SELECT 1 FROM Parques.TipoParque
+        WHERE idTipoParque = @idTipoParque
+    )
+    SET @errores += '- El tipo de parque no existe.' + CHAR(10)
+
+    IF ISNULL(@nombre,'') = ''
+    SET @errores += '- Falta ingresar nombre.' + CHAR(10)
+
+    IF ISNULL(@localidad,'') = ''
+    SET @errores += '- Falta ingresar localidad.' + CHAR(10)
+
+    IF ISNULL(@provincia,'') = ''
+    SET @errores += '- Falta ingresar provincia.' + CHAR(10)
+
+    IF @superficie <= 0
+    SET @errores += '- Superficie ingresada no valida.' + CHAR(10)
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1)
+        RETURN
+    END
+
+    INSERT INTO Parques.Parque
+        (idTipoParque, nombre, localidad, provincia, superficie)
+    VALUES
+        (@idTipoParque, @nombre, @localidad, @provincia, @superficie)
+    
+    SELECT SCOPE_IDENTITY() AS idParqueNuevo
+END
+GO
+
 CREATE OR ALTER PROCEDURE Parques.sp_ModificacionParque
     @idParque     INT,
     @idTipoParque INT,
