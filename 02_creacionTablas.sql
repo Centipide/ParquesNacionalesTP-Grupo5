@@ -3,6 +3,13 @@
 -- Descripción: Creación de todas las tablas con sus PKs, FKs,
 --              checks y restricciones de integridad.
 -- ============================================================
+-- ============================================================
+-- INTEGRANTES
+--  Ayala Bustos, Gustavo Gabriel
+--  Bonfigli, Leonardo
+--  Casale Benavente, Pedro Santino
+--  Martinez Souto, Joaquin
+-- ============================================================
 
 USE ParquesNacionales;
 GO
@@ -37,10 +44,10 @@ CREATE TABLE Parques.Parque (
 GO
 
 -- ==========================================================
--- ESQUEMA RRHH
+-- ESQUEMA Personal
 -- ==========================================================
 
-CREATE TABLE RRHH.Guardaparque (
+CREATE TABLE Personal.Guardaparque (
     idGuardaparque   INT          IDENTITY(1,1),
     nombre           VARCHAR(50)  NOT NULL,
     apellido         VARCHAR(50)  NOT NULL,
@@ -62,7 +69,7 @@ CREATE TABLE RRHH.Guardaparque (
 );
 GO
 
-CREATE TABLE RRHH.HistorialGuardaparque (
+CREATE TABLE Personal.HistorialGuardaparque (
     idHistorial     INT  IDENTITY(1,1),
     idParque        INT  NOT NULL,
     idGuardaparque  INT  NOT NULL,

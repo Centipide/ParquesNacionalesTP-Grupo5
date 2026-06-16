@@ -3,6 +3,13 @@
 -- Descripción: Creación de la base de datos ParquesNacionales
 --              y los esquemas de organización lógica.
 -- ============================================================
+-- ============================================================
+-- INTEGRANTES
+--  Ayala Bustos, Gustavo Gabriel
+--  Bonfigli, Leonardo
+--  Casale Benavente, Pedro Santino
+--  Martinez Souto, Joaquin
+-- ============================================================
 
 USE master;
 GO
@@ -38,5 +45,5 @@ CREATE SCHEMA Concesiones;      -- Empresas concesionarias y contratos
 GO
 CREATE SCHEMA Ventas;           -- Entradas, visitantes y ventas
 GO
-CREATE SCHEMA RRHH;             -- Guardaparques
+CREATE SCHEMA Personal;         -- Guardaparques
 GO
