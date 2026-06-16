@@ -80,7 +80,7 @@ CREATE TABLE Personal.HistorialGuardaparque (
     CONSTRAINT FK_HistGP_Parque FOREIGN KEY (idParque)
         REFERENCES Parques.Parque (idParque),
     CONSTRAINT FK_HistGP_Guardaparque FOREIGN KEY (idGuardaparque)
-        REFERENCES RRHH.Guardaparque (idGuardaparque),
+        REFERENCES Personal.Guardaparque (idGuardaparque),
     CONSTRAINT CK_HistGP_Fechas CHECK (
         fechaEgreso IS NULL OR fechaEgreso >= fechaIngreso
     )

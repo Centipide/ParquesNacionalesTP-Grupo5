@@ -2,6 +2,13 @@
 -- Fecha: 2025-06-15
 -- Descripción: Creación de todos los ABM
 -- ============================================================
+-- ============================================================
+-- INTEGRANTES
+--  Ayala Bustos, Gustavo Gabriel
+--  Bonfigli, Leonardo
+--  Casale Benavente, Pedro Santino
+--  Martinez Souto, Joaquin
+-- ============================================================
 
 USE ParquesNacionales;
 GO
@@ -728,7 +735,7 @@ CREATE OR ALTER PROCEDURE Parques.sp_ModificacionParque
 AS
 BEGIN
     SET NOCOUNT ON
-    DECLARE @errores VARHCAR(1000) = ''
+    DECLARE @errores VARCHAR(1000) = ''
 
     IF NOT EXISTS(
         SELECT 1 FROM Parques.Parque
@@ -752,7 +759,7 @@ BEGIN
     END
 
     UPDATE Parques.Parque
-    SET TipoParque = @TipoParque, nombre = @nombre, localidad = @localidad,
+    SET idTipoParque = @idTipoParque, nombre = @nombre, localidad = @localidad,
         provincia = @provincia, superficie = @superficie
     WHERE idParque = @idParque
 END
@@ -768,7 +775,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM Parques.Parque
-        WHERE idParque = @idParque
+        WHERE idTipoParque = @idTipoParque
     )
         SET @errores += 'No existe el parque ingresado.' + CHAR(10)
 
@@ -955,7 +962,7 @@ BEGIN
         SET @errores += '- Email ya registrado.' + CHAR(10)
 
     -- Validacion FECHA INGRESO
-    IF EXISTS (@fechaIngresoCargo > CAST(GETDATE() AS DATE))
+    IF (@fechaIngresoCargo > CAST(GETDATE() AS DATE))
         SET @errores += '- Fecha invalida.' + CHAR(10)
 
     IF @errores <> ''
@@ -964,7 +971,7 @@ BEGIN
         RETURN
     END
 
-    INSERTO INTO Personal.Guardaparque
+    INSERT INTO Personal.Guardaparque
         (nombre, apellido, fechaNacimiento, tipoDocumento, nroDocumento, email, fechaIngresoCargo, estaActivo)
     VALUES
         (@nombre, @apellido, @fechaNacimiento, @tipoDocumento, @nroDocumento, @email, @fechaIngresoCargo, 1)
@@ -1083,7 +1090,7 @@ BEGIN
         RETURN
     END
 
-    INSERTO INTO Personal.HistorialGuardaparque
+    INSERT INTO Personal.HistorialGuardaparque
         (idParque, idGuardaparque, fechaIngreso, fechaEgreso)
     VALUES
         (@idParque, @idGuardaparque, @fechaIngreso, @fechaEgreso)
@@ -1134,7 +1141,7 @@ GO
 
 
 CREATE OR ALTER PROCEDURE Personal.sp_BajaHistorialGuardaparque
-    @idHistorial        INT,
+    @idHistorial INT
 AS
 BEGIN
     SET NOCOUNT ON
