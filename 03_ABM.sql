@@ -779,25 +779,25 @@ BEGIN
     )
         SET @errores += 'No existe el parque ingresado.' + CHAR(10)
 
-    IF NOT EXISTS (
+    IF EXISTS (
         SELECT 1 FROM Actividades.ActividadTuristica
         WHERE idParque = @idParque
     )
         SET @errores += 'No se puede eliminar porque existen Actividades Turisticas en el parque.' + CHAR(10)
 
-    IF NOT EXISTS (
+    IF EXISTS (
         SELECT 1 FROM Personal.HistorialGuardaparque
         WHERE idParque = @idParque
     )
         SET @errores += 'No se puede eliminar porque existen Historial de Guardaparque en el parque.' + CHAR(10)
 
-    IF NOT EXISTS (
+    IF EXISTS (
         SELECT 1 FROM Concesiones.Concesion
         WHERE idParque = @idParque
     )
         SET @errores += 'No se puede eliminar porque existen Concesiones en el parque.' + CHAR(10)
 
-    IF NOT EXISTS (
+    IF EXISTS (
         SELECT 1 FROM Ventas.Entrada
         WHERE idParque = @idParque
     )
@@ -886,10 +886,8 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE sp_BajaTipoParque
-    @idTipoParque INT,
-    @nombre       VARCHAR(30),
-    @descripcion  VARCHAR(100)
+CREATE OR ALTER PROCEDURE Parque.sp_BajaTipoParque
+    @idTipoParque INT
 AS
 BEGIN
     SET NOCOUNT ON
