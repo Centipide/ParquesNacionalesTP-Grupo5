@@ -23,7 +23,7 @@ CREATE TABLE Actividades.TipoActividadTuristica (
 GO
 */
 
-CREATE OR ALTER PROCEDURE Actividades.sp_RegistrarTipoActividadTuristica
+CREATE OR ALTER PROCEDURE Actividades.sp_AltaTipoActividadTuristica
     @descripcion VARCHAR(300)
 AS
 BEGIN
@@ -32,7 +32,7 @@ BEGIN
     DECLARE @errores VARCHAR(500) = '';
     
     IF @descripcion IS NULL OR LTRIM(RTRIM(@descripcion)) = ''
-        SET @errores = @errores + 'La descripcion no puede estar vacia.';
+        SET @errores = @errores + 'La descripcion no puede estar vacia.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -46,7 +46,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_ModificarTipoActividadTuristica
+CREATE OR ALTER PROCEDURE Actividades.sp_ModificacionTipoActividadTuristica
     @idTipoActividadTuristica INT,
 	@descripcion              VARCHAR(300)
 AS
@@ -57,7 +57,10 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.TipoActividadTuristica
                    WHERE idTipoActividadTuristica = @idTipoActividadTuristica)
-        SET @errores = @errores + 'El id de tipo de actividad turistica no existe. ';
+        SET @errores = @errores + 'El id de tipo de actividad turistica no existe.' + CHAR(10);
+
+    IF @descripcion IS NULL OR LTRIM(RTRIM(@descripcion)) = ''
+        SET @errores = @errores + 'La descripcion no puede estar vacia.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -72,7 +75,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_EliminarTipoActividadTuristica
+CREATE OR ALTER PROCEDURE Actividades.sp_BajaTipoActividadTuristica
     @idTipoActividadTuristica INT
 AS
 BEGIN
@@ -82,7 +85,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.TipoActividadTuristica
                    WHERE idTipoActividadTuristica = @idTipoActividadTuristica)
-        SET @errores = @errores + 'El id de tipo de actividad turistica no existe. ';
+        SET @errores = @errores + 'El id de tipo de actividad turistica no existe.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -117,7 +120,7 @@ CREATE TABLE Actividades.ActividadTuristica (
 GO
 */
 
-CREATE OR ALTER PROCEDURE Actividades.sp_RegistrarActividadTuristica
+CREATE OR ALTER PROCEDURE Actividades.sp_AltaActividadTuristica
     @idParque                    INT,
     @idTipoActividadTuristica    INT,
     @nombre                      VARCHAR(50),
@@ -132,23 +135,23 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Parques.Parque
                    WHERE idParque = @idParque)
-        SET @errores = @errores + 'El id de Parque no existe. ';
+        SET @errores = @errores + 'El id de Parque no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.TipoActividadTuristica
                    WHERE idTipoActividadTuristica = @idTipoActividadTuristica)
-        SET @errores = @errores + 'El id de Tipo Actividad turistica no existe. ';
+        SET @errores = @errores + 'El id de Tipo Actividad turistica no existe.' + CHAR(10);
 
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
-        SET @errores = @errores + 'El nombre no puede estar vacio. ';
+        SET @errores = @errores + 'El nombre no puede estar vacio.' + CHAR(10);
 
     IF @costo < 0
-        SET @errores = @errores + 'El costo no puede ser negativo. ';
+        SET @errores = @errores + 'El costo no puede ser negativo.' + CHAR(10);
 
     IF @duracion <= 0
-        SET @errores = @errores + 'La duracion debe ser mayor a 0. ';
+        SET @errores = @errores + 'La duracion debe ser mayor a 0.' + CHAR(10);
 
     IF @cupoMaximo <= 0
-        SET @errores = @errores + 'El cupo maximo debe ser mayor a 0. ';
+        SET @errores = @errores + 'El cupo maximo debe ser mayor a 0.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -162,7 +165,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_ModificarActividadTuristica
+CREATE OR ALTER PROCEDURE Actividades.sp_ModificacionActividadTuristica
     @idActividadTuristica       INT,
     @idParque                   INT,
     @idTipoActividadTuristica   INT,
@@ -178,27 +181,27 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.ActividadTuristica
                    WHERE idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'El id de Actividad Turistica no existe. ';
+        SET @errores = @errores + 'El id de Actividad Turistica no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Parques.Parque
                    WHERE idParque = @idParque)
-        SET @errores = @errores + 'El id de Parque no existe. ';
+        SET @errores = @errores + 'El id de Parque no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.TipoActividadTuristica
                    WHERE idTipoActividadTuristica = @idTipoActividadTuristica)
-        SET @errores = @errores + 'El id de Tipo Actividad Turistica no existe. ';
+        SET @errores = @errores + 'El id de Tipo Actividad Turistica no existe.' + CHAR(10);
 
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
-        SET @errores = @errores + 'El nombre no puede estar vacio. ';
+        SET @errores = @errores + 'El nombre no puede estar vacio.' + CHAR(10);
 
     IF @costo < 0
-        SET @errores = @errores + 'El costo no puede ser negativo. ';
+        SET @errores = @errores + 'El costo no puede ser negativo.' + CHAR(10);
 
     IF @duracion <= 0
-        SET @errores = @errores + 'La duracion debe ser mayor a 0. ';
+        SET @errores = @errores + 'La duracion debe ser mayor a 0.' + CHAR(10);
 
     IF @cupoMaximo <= 0
-        SET @errores = @errores + 'El cupo maximo debe ser mayor a 0. ';
+        SET @errores = @errores + 'El cupo maximo debe ser mayor a 0.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -218,7 +221,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_EliminarActividadTuristica
+CREATE OR ALTER PROCEDURE Actividades.sp_BajaActividadTuristica
     @idActividadTuristica INT
 AS
 BEGIN
@@ -228,7 +231,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.ActividadTuristica
                    WHERE idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'El id de Actividad Turistica no existe. ';
+        SET @errores = @errores + 'El id de Actividad Turistica no existe.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -255,7 +258,7 @@ CREATE TABLE Actividades.GuiaAutorizacion (
 GO
 */
 
-CREATE OR ALTER PROCEDURE Actividades.sp_RegistrarGuiaAutorizacion 
+CREATE OR ALTER PROCEDURE Actividades.sp_AltaGuiaAutorizacion 
     @idGuia                 INT,
     @idActividadTuristica   INT
 AS
@@ -266,15 +269,15 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Guias.Guia
                    WHERE idGuia = @idGuia)
-        SET @errores = @errores + 'El id de Guia no existe. ';
+        SET @errores = @errores + 'El id de Guia no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.ActividadTuristica
                    WHERE idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'El id de Actividad Turistica no existe. ';
+        SET @errores = @errores + 'El id de Actividad Turistica no existe.' + CHAR(10);
 
     IF EXISTS (SELECT 1 FROM Actividades.GuiaAutorizacion
                WHERE idGuia = @idGuia AND idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'El guia ya esta autorizado para esta actividad. ';
+        SET @errores = @errores + 'El guia ya esta autorizado para esta actividad.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -288,7 +291,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_EliminarGuiaAutorizacion
+CREATE OR ALTER PROCEDURE Actividades.sp_BajaGuiaAutorizacion
     @idGuia                 INT,
     @idActividadTuristica   INT
 AS
@@ -299,7 +302,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.GuiaAutorizacion
                    WHERE idGuia = @idGuia AND idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'No existe una autorizacion para ese guia y actividad. ';
+        SET @errores = @errores + 'No existe una autorizacion para ese guia y actividad.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -332,7 +335,7 @@ CREATE TABLE Actividades.ActividadProgramada (
 GO
 */
 
-CREATE OR ALTER PROCEDURE Actividades.sp_RegistrarActividadProgramada
+CREATE OR ALTER PROCEDURE Actividades.sp_AltaActividadProgramada
     @idGuia                 INT,
     @idActividadTuristica   INT,
     @fecha                  DATE,
@@ -346,22 +349,22 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Guias.Guia
                    WHERE idGuia = @idGuia)
-        SET @errores = @errores + 'El id de Guia no existe. ';
+        SET @errores = @errores + 'El id de Guia no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.ActividadTuristica
                    WHERE idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'El id de Actividad Turistica no existe. ';
+        SET @errores = @errores + 'El id de Actividad Turistica no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.GuiaAutorizacion
                    WHERE idGuia = @idGuia
                      AND idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'El guia no esta autorizado para realizar esta actividad. ';
+        SET @errores = @errores + 'El guia no esta autorizado para realizar esta actividad.' + CHAR(10);
 
     IF @fecha IS NULL
-        SET @errores = @errores + 'La fecha no puede estar vacia. ';
+        SET @errores = @errores + 'La fecha no puede estar vacia.' + CHAR(10);
 
     IF @horaInicio IS NULL
-        SET @errores = @errores + 'La hora de inicio no puede estar vacia. ';
+        SET @errores = @errores + 'La hora de inicio no puede estar vacia.' + CHAR(10);
 
     IF EXISTS (SELECT 1
                FROM Actividades.ActividadProgramada
@@ -369,7 +372,7 @@ BEGIN
                  AND idActividadTuristica = @idActividadTuristica
                  AND fecha = @fecha
                  AND horaInicio = @horaInicio)
-        SET @errores = @errores + 'Ya existe una actividad programada con esos datos. ';
+        SET @errores = @errores + 'Ya existe una actividad programada con esos datos.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -383,7 +386,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_ModificarActividadProgramada
+CREATE OR ALTER PROCEDURE Actividades.sp_ModificacionActividadProgramada
     @idActividadProgramada   INT,
     @idGuia                  INT,
     @idActividadTuristica    INT,
@@ -399,29 +402,29 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.ActividadProgramada
                    WHERE idActividadProgramada = @idActividadProgramada)
-        SET @errores = @errores + 'El id de Actividad Programada no existe. ';
+        SET @errores = @errores + 'El id de Actividad Programada no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Guias.Guia
                    WHERE idGuia = @idGuia)
-        SET @errores = @errores + 'El id de Guia no existe. ';
+        SET @errores = @errores + 'El id de Guia no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.ActividadTuristica
                    WHERE idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'El id de Actividad Turistica no existe. ';
+        SET @errores = @errores + 'El id de Actividad Turistica no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.GuiaAutorizacion
                    WHERE idGuia = @idGuia
                      AND idActividadTuristica = @idActividadTuristica)
-        SET @errores = @errores + 'El guia no esta autorizado para realizar esta actividad. ';
+        SET @errores = @errores + 'El guia no esta autorizado para realizar esta actividad.' + CHAR(10);
 
     IF @fecha IS NULL
-        SET @errores = @errores + 'La fecha no puede estar vacia. ';
+        SET @errores = @errores + 'La fecha no puede estar vacia.' + CHAR(10);
 
     IF @horaInicio IS NULL
-        SET @errores = @errores + 'La hora de inicio no puede estar vacia. ';
+        SET @errores = @errores + 'La hora de inicio no puede estar vacia.' + CHAR(10);
 
     IF @estado NOT IN ('Programada', 'Realizada', 'Cancelada')
-        SET @errores = @errores + 'El estado debe ser Programada, Realizada o Cancelada. ';
+        SET @errores = @errores + 'El estado debe ser Programada, Realizada o Cancelada.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -466,7 +469,7 @@ CREATE TABLE Actividades.DetalleContratacion (
 GO
 */
 
-CREATE OR ALTER PROCEDURE Actividades.sp_RegistrarDetalleContratacion
+CREATE OR ALTER PROCEDURE Actividades.sp_AltaDetalleContratacion
     @idVenta    INT,
     @costoTotal DECIMAL(12,2)
 AS
@@ -477,10 +480,10 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Ventas.Venta
                    WHERE idVenta = @idVenta)
-        SET @errores = @errores + 'El id de Venta no existe. ';
+        SET @errores = @errores + 'El id de Venta no existe.' + CHAR(10);
 
     IF @costoTotal < 0
-        SET @errores = @errores + 'El costo total no puede ser negativo. ';
+        SET @errores = @errores + 'El costo total no puede ser negativo.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -494,7 +497,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_ModificarDetalleContratacion
+CREATE OR ALTER PROCEDURE Actividades.sp_ModificacionDetalleContratacion
     @idDetalleContratacion INT,
     @idVenta               INT,
     @costoTotal            DECIMAL(12,2)
@@ -506,14 +509,14 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.DetalleContratacion
                    WHERE idDetalleContratacion = @idDetalleContratacion)
-        SET @errores = @errores + 'El id de Detalle Contratacion no existe. ';
+        SET @errores = @errores + 'El id de Detalle Contratacion no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Ventas.Venta
                    WHERE idVenta = @idVenta)
-        SET @errores = @errores + 'El id de Venta no existe. ';
+        SET @errores = @errores + 'El id de Venta no existe.' + CHAR(10);
 
     IF @costoTotal < 0
-        SET @errores = @errores + 'El costo total no puede ser negativo. ';
+        SET @errores = @errores + 'El costo total no puede ser negativo.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -529,7 +532,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_EliminarDetalleContratacion
+CREATE OR ALTER PROCEDURE Actividades.sp_BajaDetalleContratacion
     @idDetalleContratacion INT
 AS
 BEGIN
@@ -539,7 +542,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.DetalleContratacion
                    WHERE idDetalleContratacion = @idDetalleContratacion)
-        SET @errores = @errores + 'El id de Detalle Contratacion no existe. ';
+        SET @errores = @errores + 'El id de Detalle Contratacion no existe.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -580,7 +583,7 @@ GO
 
 */
 
-CREATE OR ALTER PROCEDURE Actividades.sp_RegistrarContratacion
+CREATE OR ALTER PROCEDURE Actividades.sp_AltaContratacion
     @idDetalleContratacion INT,
     @idActividadProgramada INT,
     @costo                 DECIMAL(10,2),
@@ -594,21 +597,21 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.DetalleContratacion
                    WHERE idDetalleContratacion = @idDetalleContratacion)
-        SET @errores = @errores + 'El id de Detalle Contratacion no existe. ';
+        SET @errores = @errores + 'El id de Detalle Contratacion no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.ActividadProgramada
                    WHERE idActividadProgramada = @idActividadProgramada)
-        SET @errores = @errores + 'El id de Actividad Programada no existe. ';
+        SET @errores = @errores + 'El id de Actividad Programada no existe.' + CHAR(10);
 
     IF @costo < 0
-        SET @errores = @errores + 'El costo no puede ser negativo. ';
+        SET @errores = @errores + 'El costo no puede ser negativo.' + CHAR(10);
 
     IF @cantidadPersonas <= 0
-        SET @errores = @errores + 'La cantidad de personas debe ser mayor a 0. ';
+        SET @errores = @errores + 'La cantidad de personas debe ser mayor a 0.' + CHAR(10);
 
     IF @estado IS NULL
        OR @estado NOT IN ('Confirmada', 'Cancelada', 'Completada')
-        SET @errores = @errores + 'El estado debe ser Confirmada, Cancelada o Completada. ';
+        SET @errores = @errores + 'El estado debe ser Confirmada, Cancelada o Completada.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -622,7 +625,7 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Actividades.sp_ModificarContratacion
+CREATE OR ALTER PROCEDURE Actividades.sp_ModificacionContratacion
     @idContratacion         INT,
     @idDetalleContratacion  INT,
     @idActividadProgramada  INT,
@@ -637,25 +640,25 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.Contratacion
                    WHERE idContratacion = @idContratacion)
-        SET @errores = @errores + 'El id de Contratacion no existe. ';
+        SET @errores = @errores + 'El id de Contratacion no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.DetalleContratacion
                    WHERE idDetalleContratacion = @idDetalleContratacion)
-        SET @errores = @errores + 'El id de Detalle Contratacion no existe. ';
+        SET @errores = @errores + 'El id de Detalle Contratacion no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.ActividadProgramada
                    WHERE idActividadProgramada = @idActividadProgramada)
-        SET @errores = @errores + 'El id de Actividad Programada no existe. ';
+        SET @errores = @errores + 'El id de Actividad Programada no existe.' + CHAR(10);
 
     IF @costo < 0
-        SET @errores = @errores + 'El costo no puede ser negativo. ';
+        SET @errores = @errores + 'El costo no puede ser negativo.' + CHAR(10);
 
     IF @cantidadPersonas <= 0
-        SET @errores = @errores + 'La cantidad de personas debe ser mayor a 0. ';
+        SET @errores = @errores + 'La cantidad de personas debe ser mayor a 0.' + CHAR(10);
 
     IF @estado IS NULL
        OR @estado NOT IN ('Pendiente', 'Confirmada', 'Cancelada', 'Completada')
-        SET @errores = @errores + 'El estado debe ser Pendiente, Confirmada, Cancelada o Completada. ';
+        SET @errores = @errores + 'El estado debe ser Pendiente, Confirmada, Cancelada o Completada.' + CHAR(10);
 
     IF @errores != ''
     BEGIN
@@ -775,7 +778,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM Parques.Parque
-        WHERE idTipoParque = @idTipoParque
+        WHERE idParque = @idParque
     )
         SET @errores += 'No existe el parque ingresado.' + CHAR(10)
 
@@ -861,7 +864,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM Parques.TipoParque
-        WHERE idParque = @idParque
+        WHERE idTipoParque = @idTipoParque
     )
         SET @errores += '- No existe el Tipo Parque ingresado.' + CHAR(10)
     
@@ -886,7 +889,7 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Parque.sp_BajaTipoParque
+CREATE OR ALTER PROCEDURE Parques.sp_BajaTipoParque
     @idTipoParque INT
 AS
 BEGIN
@@ -1198,7 +1201,7 @@ BEGIN
         SELECT 1 FROM Personal.HistorialGuardaparque
         WHERE idHistorial = @idHistorial
     )
-        SET @errores += '- No se puede eliminar Historial inexistente.'
+        SET @errores += '- No se puede eliminar Historial inexistente.' + CHAR(10);
 
     IF @errores <> ''
     BEGIN
