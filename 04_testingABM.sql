@@ -1273,10 +1273,12 @@ GO
 
 USE ParquesNacionales;
 GO
-
 -- ========================================================================
+-- TESTING DE EMPRESA CONCESIONARIA
+-- ========================================================================
+-- ************************************************************************
 -- TEST CASO EXITOSO: ALTA -> MODIFICACIÓN -> ELIMINACIÓN
--- ========================================================================
+-- ************************************************************************
 
 BEGIN TRANSACTION; -- Inicio de zona segura de pruebas sin datos basura
 BEGIN TRY
@@ -1319,9 +1321,9 @@ ROLLBACK TRANSACTION; -- La base vuelve a su estado original e intacto
 GO
 
 
--- ========================================================================
+-- ************************************************************************
 -- TEST CASO FALLIDO: SIMULACIÓN DE INFRACCIÓN A VALIDACIONES
--- ========================================================================
+-- ************************************************************************
 -- ESCENARIO ESPERADO: El SP debe interceptar los fallos y concatenar ambos
 -- en un mismo string (CUIT inválido menor a 11 caracteres y Razón Social vacía).
 
@@ -1342,8 +1344,11 @@ ROLLBACK TRANSACTION;
 GO
 
 -- ========================================================================
--- TEST TIPO ACTIVIDAD CONCESION: CASO EXITOSO (CON ROLLBACK)
+-- TESTING DE Tipo de actividad de concesión
 -- ========================================================================
+-- ************************************************************************
+-- TEST TIPO ACTIVIDAD CONCESION: CASO EXITOSO (CON ROLLBACK)
+-- ************************************************************************
 
 BEGIN TRANSACTION;
 BEGIN TRY
@@ -1383,9 +1388,9 @@ ROLLBACK TRANSACTION;
 GO
 
 
--- ========================================================================
--- TEST TIPO ACTIVIDAD CONCESION: CASO DE ERROR
--- ========================================================================
+-- ************************************************************************
+--  CASO DE ERROR
+-- ************************************************************************
 -- ESCENARIO ESPERADO: Debe fallar concatenando el nombre vacío.
 
 BEGIN TRANSACTION;
@@ -1402,10 +1407,12 @@ BEGIN CATCH
 END CATCH;
 ROLLBACK TRANSACTION;
 GO
-
 -- ========================================================================
--- TEST CONCESION: CASO EXITOSO (CON ROLLBACK)
+-- TESTING DE CONCESION
 -- ========================================================================
+-- ************************************************************************
+-- CASO EXITOSO 
+-- ************************************************************************
 
 BEGIN TRANSACTION;
 BEGIN TRY
@@ -1472,9 +1479,9 @@ ROLLBACK TRANSACTION; -- Limpieza de los datos de soporte
 GO
 
 
--- ========================================================================
--- TEST CONCESION: CASO DE ERROR (VALIDACIONES ACUMULATIVAS)
--- ========================================================================
+-- ************************************************************************
+-- CASO DE ERROR (VALIDACIONES ACUMULATIVAS)
+-- ************************************************************************
 -- ESCENARIO ESPERADO: Debe fallar concatenando tres infracciones claras:
 -- (FKs inexistentes, fechas cruzadas al revés y monto negativo).
 
@@ -1499,8 +1506,11 @@ ROLLBACK TRANSACTION;
 GO
 
 -- ========================================================================
--- TEST PAGO CANON: CASO EXITOSO Y RESTRICCIÓN DE BAJA
+-- TESTING DE PAGO CANON
 -- ========================================================================
+-- ************************************************************************
+-- TEST PAGO CANON: CASO EXITOSO Y RESTRICCIÓN DE BAJA
+-- ************************************************************************
 
 BEGIN TRANSACTION;
 BEGIN TRY
@@ -1566,9 +1576,9 @@ ROLLBACK TRANSACTION; -- Dejamos la base limpia sin basura de testing
 GO
 
 
--- ========================================================================
+-- ************************************************************************
 -- TEST PAGO CANON: CASO DE ERROR (VALIDACIONES CRUZADAS)
--- ========================================================================
+-- ************************************************************************
 
 BEGIN TRANSACTION;
 BEGIN TRY
@@ -1592,9 +1602,9 @@ GO
 -- ESCENARIOS DE ERROR COMPLEMENTARIOS (AUDITORÍA DE VALIDACIONES CRÍTICAS)
 -- ========================================================================
 
---- ========================================================================
+--- ************************************************************************
 --- TEST ERROR: MODIFICACIÓN CON ID INEXISTENTE
---- ========================================================================
+--- ************************************************************************
 -- ESCENARIO ESPERADO: Debe fallar atrapando que el ID no existe en el sistema.
 
 BEGIN TRANSACTION;
@@ -1629,9 +1639,9 @@ ROLLBACK TRANSACTION;
 GO
 
 
--- ========================================================================
+-- ************************************************************************
 -- TEST ERROR: VIOLACIÓN DE UNICIDAD (CUIT Y NOMBRE DUPLICADOS)
--- ========================================================================
+-- ************************************************************************
 -- ESCENARIO ESPERADO: El sistema debe impedir la clonación de datos persistentes.
 
 BEGIN TRANSACTION;
@@ -1669,9 +1679,9 @@ ROLLBACK TRANSACTION;
 GO
 
 
--- ========================================================================
+-- ************************************************************************
 -- TEST ERROR: ELIMINACIÓN BLOQUEADA POR INTEGRIDAD REFERENCIAL (FK)
--- ========================================================================
+-- ************************************************************************
 -- ESCENARIO ESPERADO: El SP debe impedir el DELETE físico porque la empresa tiene hijos.
 
 BEGIN TRANSACTION;
@@ -1707,5 +1717,90 @@ BEGIN CATCH
     SELECT value AS [Errores Atrapados (Fallo de Integridad Referencial)]
     FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
 END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+-- ========================================================================
+-- TESTING DE TIPO DE VISITANTE
+-- ========================================================================
+-- ************************************************************************
+-- TEST TIPO VISITANTE: CASO EXITOSO (CAMMINO FELIZ CON ROLLBACK)
+-- ************************************************************************
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    DECLARE @idTipoVisitanteTest INT;
+
+    -- 1. Probar Alta Exitosa
+    EXEC Ventas.sp_AltaTipoVisitante
+        @nombre = 'TEST_Estudiante Universitario',
+        @descripcion = 'Tarifa diferenciada aplicable a alumnos regulares de instituciones superiores.';
+
+    PRINT 'Evidencia post-alta:';
+    SELECT * FROM Ventas.TipoVisitante WHERE nombre = 'TEST_Estudiante Universitario';
+
+    SELECT @idTipoVisitanteTest = idTipoVisitante FROM Ventas.TipoVisitante WHERE nombre = 'TEST_Estudiante Universitario';
+
+    -- 2. Probar Modificación Exitosa
+    EXEC Ventas.sp_ModificacionTipoVisitante
+        @idTipoVisitante = @idTipoVisitanteTest,
+        @nombre = 'TEST_Estudiante Universitario/Terciario',
+        @descripcion = 'Tarifa diferenciada extendida a alumnos de educación superior pública o privada.';
+
+    PRINT 'Evidencia post-modificación:';
+    SELECT * FROM Ventas.TipoVisitante WHERE idTipoVisitante = @idTipoVisitanteTest;
+
+    -- 3. Probar Eliminación Física Exitosa
+    EXEC Ventas.sp_EliminarTipoVisitante @idTipoVisitante = @idTipoVisitanteTest;
+
+    PRINT 'Evidencia post-eliminación (Debe retornar vacío):';
+    SELECT * FROM Ventas.TipoVisitante WHERE idTipoVisitante = @idTipoVisitanteTest;
+
+END TRY
+BEGIN CATCH
+    PRINT 'Error inesperado detectado en flujo de prueba feliz: ' + ERROR_MESSAGE();
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
+
+
+-- ************************************************************************
+-- TEST TIPO VISITANTE: CASOS DE ERROR (NULOS, DUPLICADOS E ID INEXISTENTE)
+-- ************************************************************************
+
+-- Prueba A: Nombre vacío al insertar
+BEGIN TRANSACTION;
+BEGIN TRY
+    EXEC Ventas.sp_AltaTipoVisitante @nombre = '   ', @descripcion = 'Falla cadena vacía';
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (Alta Vacía)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+
+-- Prueba B: Modificación con ID que no existe y parámetro NULL
+BEGIN TRY
+    EXEC Ventas.sp_ModificacionTipoVisitante 
+        @idTipoVisitante = -99, -- Inexistente
+        @nombre = NULL;        -- Error de nulo protegido
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (Modificación Maliciosa)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+
+-- Prueba C: Control de nombres duplicados en el catálogo
+BEGIN TRY
+    INSERT INTO Ventas.TipoVisitante (nombre) VALUES ('TEST_Duplicado');
+    
+    EXEC Ventas.sp_AltaTipoVisitante @nombre = 'TEST_Duplicado';
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (Nombre Duplicado)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+
 ROLLBACK TRANSACTION;
 GO

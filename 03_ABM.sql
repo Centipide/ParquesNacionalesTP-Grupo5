@@ -1586,3 +1586,92 @@ BEGIN
     RETURN;
 END;
 GO
+
+-- ==========================================================
+-- TABLA TipoVisitante
+-- ==========================================================
+
+CREATE OR ALTER PROCEDURE Ventas.sp_AltaTipoVisitante
+    @nombre      VARCHAR(100),
+    @descripcion VARCHAR(300) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
+        SET @errores += '- El nombre del tipo de visitante es obligatorio y no puede enviarse vacío.' + CHAR(10);
+
+    IF EXISTS (SELECT 1 FROM Ventas.TipoVisitante WHERE nombre = @nombre)
+        SET @errores += '- El tipo de visitante ingresado ya se encuentra registrado en el catálogo.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO Ventas.TipoVisitante (nombre, descripcion)
+    VALUES (LTRIM(RTRIM(@nombre)), LTRIM(RTRIM(@descripcion)));
+
+    SELECT SCOPE_IDENTITY() AS idTipoVisitanteNuevo;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE Ventas.sp_ModificacionTipoVisitante
+    @idTipoVisitante INT,
+    @nombre          VARCHAR(100),
+    @descripcion     VARCHAR(300) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Ventas.TipoVisitante WHERE idTipoVisitante = @idTipoVisitante)
+        SET @errores += '- El ID del tipo de visitante especificado no existe.' + CHAR(10);
+
+    IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
+        SET @errores += '- El nombre de la categoría es un campo obligatorio y no nulo.' + CHAR(10);
+
+    IF EXISTS (SELECT 1 FROM Ventas.TipoVisitante WHERE nombre = @nombre AND idTipoVisitante <> @idTipoVisitante)
+        SET @errores += '- Ya existe otra categoría de visitante registrada con ese mismo nombre.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    UPDATE Ventas.TipoVisitante
+    SET nombre = LTRIM(RTRIM(@nombre)),
+        descripcion = LTRIM(RTRIM(@descripcion))
+    WHERE idTipoVisitante = @idTipoVisitante;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE Ventas.sp_EliminarTipoVisitante
+    @idTipoVisitante INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Ventas.TipoVisitante WHERE idTipoVisitante = @idTipoVisitante)
+        SET @errores += '- El ID de la categoría a eliminar no existe.' + CHAR(10);
+
+    IF EXISTS (SELECT 1 FROM Ventas.Entrada WHERE idTipoVisitante = @idTipoVisitante)
+        SET @errores += '- Restricción de Integridad: No se puede eliminar la categoría porque existen tarifas de entrada vigentes vinculadas a este tipo de visitante.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM Ventas.TipoVisitante 
+    WHERE idTipoVisitante = @idTipoVisitante;
+    
+    PRINT 'Tipo de visitante eliminado correctamente.';
+END;
+GO
+
