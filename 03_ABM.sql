@@ -913,7 +913,7 @@ BEGIN
     IF ISNULL (@fechaNacimiento,'') = ''
         SET @errores += '- Fecha de nacimiento no ingresada.' + CHAR(10)
 
-    -- Validacion TIPO Y NRO DOCUMENTO
+    -- Validacion TIPO Y NRO DOCUMENTOD
     IF EXISTS (
         SELECT 1 FROM Personal.Guardaparque
         WHERE tipoDocumento = @tipoDocumento AND nroDocumento = @nroDocumento
@@ -1176,5 +1176,167 @@ BEGIN
 
     DELETE FROM Personal.HistorialGuardaparque
     WHERE idHistorial = @idHistorial
+END
+GO
+
+-- ==========================================================
+-- TABLA Guia
+-- ==========================================================
+
+CREATE OR ALTER PROCEDURE Guias.sp_AltaGuia
+    @nombre               INT,
+    @apellido             VARCHAR(50),
+    @fechaNacimiento      DATE,
+    @tipoDocumento        VARCHAR(20),
+    @nroDocumento         VARCHAR(20),
+    @email                VARCHAR(150),
+    @vigenciaAutorizacion DATE,
+    @estaActivo           BIT
+
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    DECLARE @errores VARCHAR(500) = '';
+
+    -- Validacion NOMBRE
+    IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
+        SET @errores = @errores + 'El nombre no puede estar vacio' + CHAR(10)
+    
+    -- Validacion APELLIDO
+    IF @apellido IS NULL OR LTRIM(RTRIM(@nombre)) = ''
+        SET @errores = @errores + 'El apellido no puede estar vacio' + CHAR(10)
+    
+    -- Validacion FECHA NACIMIENTO
+    IF ISNULL (@fechaNacimiento,'') = ''
+        SET @errores += 'Fecha de nacimiento no ingresada.' + CHAR(10)
+
+    --Validacion TIPO DOCUMENTO Y NRO DOCUMENTO
+    IF EXISTS (
+        SELECT 1 FROM Guias.Guia
+        WHERE tipoDocumento = @tipoDocumento AND nroDocumento = @nroDocumento
+    )
+        SET @errores += 'Tipo y Nro de documento ya existen' + CHAR(10)
+
+    --Validacion EMAIL
+    IF EXISTS(
+        SELECT 1 FROM Guias.Guia
+        WHERE email = @email
+    )
+        SET @errores += 'Email ya registrado' + CHAR(10)
+    
+    -- Validacion vigencia autorizacion vacia
+    IF @vigenciaAutorizacion IS NULL
+         SET @errores += 'La vigencia de autorizacion es obligatoria.' + CHAR(10)
+
+    -- Validacion vigencia vencida
+    IF @vigenciaAutorizacion IS NOT NULL AND @vigenciaAutorizacion < GETDATE()
+    SET @errores += 'La vigencia de autorizacion no puede estar vencida.'+ CHAR(10)
+    
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores,16,1);
+        RETURN;
+    END
+
+    INSERT INTO Guias.Guia (nombre, apellido, fechaNacimiento, tipoDocumento, nroDocumento, email, vigenciaAutorizacion, estaActivo)
+    VALUES (@nombre, @apellido, @fechaNacimiento, @tipoDocumento, @nroDocumento, @email, @vigenciaAutorizacion, 1)
+
+    SELECT SCOPE_IDENTITY() AS idGuiaNuevo
+END
+GO
+--======================================================================================================================
+
+CREATE OR ALTER PROCEDURE Guias.sp_ModificacionGuia
+    @idGuia               INT,
+    @nombre               INT,
+    @apellido             VARCHAR(50),
+    @fechaNacimiento      DATE,
+    @tipoDocumento        VARCHAR(20),
+    @nroDocumento         VARCHAR(20),
+    @email                VARCHAR(150),
+    @vigenciaAutorizacion DATE,
+    @estaActivo           BIT
+
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    DECLARE @errores VARCHAR(500) = '';
+
+    IF NOT EXISTS(
+        SELECT 1 FROM Guias.Guia
+        WHERE idGuia = @idGuia
+    )
+        SET @errores += 'El id de guia ingresado no existe.' + CHAR(10)
+
+    --Validacion TIPO DOCUMENTO Y NRO DOCUMENTO
+    IF EXISTS (
+        SELECT 1 FROM Guias.Guia
+        WHERE tipoDocumento = @tipoDocumento AND nroDocumento = @nroDocumento AND idGuia != @idGuia
+    )
+        SET @errores += 'Ya existe otro guia con este tipo y nro de documento' + CHAR(10)
+
+    --Validacion EMAIL
+    IF EXISTS(
+        SELECT 1 FROM Guias.Guia
+        WHERE email = @email AND idGuia != @idGuia
+    )
+        SET @errores += 'ya existe otro guia con ese email' + CHAR(10)
+    
+    -- Validacion vigencia autorizacion vacia
+    IF @vigenciaAutorizacion IS NULL
+         SET @errores += 'La vigencia de autorizacion es obligatoria.' + CHAR(10)
+
+    -- Validacion vigencia vencida
+    IF @vigenciaAutorizacion IS NOT NULL AND @vigenciaAutorizacion < GETDATE()
+    SET @errores += 'La vigencia de autorizacion no puede estar vencida.'+ CHAR(10)
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores,16,1);
+        RETURN;
+    END
+
+     UPDATE Guias.Guia
+    SET
+        nombre=@nombre,
+        apellido=@apellido,
+        fechaNacimiento=@fechaNacimiento,
+        tipoDocumento=@tipoDocumento,
+        nroDocumento=@nroDocumento,
+        email=@email,
+        vigenciaAutorizacion=@vigenciaAutorizacion
+    WHERE idGuia=@idGuia;
+END
+GO
+
+--===================================================================================
+
+CREATE OR ALTER PROCEDURE Guias.sp_BajaGuia
+    @idGuia INT
+
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    DECLARE @errores VARCHAR(100) = '';
+
+    IF NOT EXISTS(
+        SELECT 1 FROM Guias.Guia
+        WHERE idGuia = @idGuia
+    )
+        SET @errores += 'El guia no existe.' + CHAR(10)
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores,16,1);
+        RETURN;
+    END
+
+     UPDATE Guias.Guia
+    SET
+        estaActivo = 0
+    WHERE idGuia=@idGuia;
 END
 GO

@@ -120,6 +120,7 @@ CREATE TABLE Guias.Guia (
     nroDocumento         VARCHAR(20)  NOT NULL,
     email                VARCHAR(150) NOT NULL,
     vigenciaAutorizacion DATE         NOT NULL,
+    estaActivo           BIT
 
     CONSTRAINT PK_Guia PRIMARY KEY (idGuia),
     CONSTRAINT UQ_Guia_Documento UNIQUE (tipoDocumento, nroDocumento),
