@@ -172,6 +172,9 @@ ROLLBACK TRANSACTION
 -- ************************************************************
 -- CASOS DE ERROR - Guardaparque
 -- ************************************************************
+USE ParquesNacionales
+GO
+
 -- nombre no ingresado, apellido no ingresado, fechaNacimiento no ingresada, fechaIngresoCargo no valida
 BEGIN TRY
 	EXEC Personal.sp_AltaGuardaparque @nombre = '', @apellido = '',
@@ -249,6 +252,124 @@ BEGIN TRANSACTION
 
     SELECT *
     FROM Personal.Guardaparque
+
+ROLLBACK TRANSACTION
+
+
+-- ************************************************************
+-- CASOS DE ERROR - HistorialGuardaparque
+-- ************************************************************
+USE ParquesNacionales
+GO
+
+-- idParque no existe, idGuardaparque no existe
+BEGIN TRY
+	EXEC Personal.sp_AltaHistorialGuardaparque @idParque = 1, @idGuardaparque = 1,
+        @fechaIngreso = NULL, @fechaEgreso = NULL
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- idHistorial no existe, idParque no existe, idGuardaparque no existe, fechaEgreso no valida
+BEGIN TRY
+	EXEC Personal.sp_ModificacionHistorialGuardaparque @idHistorial = 1, @idParque = 1,
+    @idGuardaparque = 1, @fechaIngreso = '2026-06-20', @fechaEgreso = '2025-06-20'
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- idHistorial no existe
+BEGIN TRY
+	EXEC Personal.sp_BajaHistorialGuardaparque @idHistorial = 1
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- idHistorial no existe
+BEGIN TRY
+	EXEC Personal.sp_EliminarHistorialGuardaparque @idHistorial = 1
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- ===========================================================
+-- CASOS EXITOSOS - HistorialGuardaparque
+-- ============================================================
+USE ParquesNacionales
+GO
+
+BEGIN TRANSACTION
+
+    DECLARE @idHistorial_TEST    INT,
+            @idTipoParque_TEST   INT,
+            @idParque_TEST       INT,
+            @idGuardaparque_TEST INT
+
+    -- Alta exitosa
+    EXEC Personal.sp_AltaGuardaparque
+        @nombre = 'Pedro', @apellido = 'Pedro', @fechaNacimiento = '2000-01-21', @tipoDocumento = 'DNI',
+        @nroDocumento = '46000000', @email = 'johnsmith@mail.com', @fechaIngresoCargo = '2026-06-12'
+
+    SELECT @idGuardaparque_TEST = idGuardaparque
+    FROM Personal.Guardaparque
+    WHERE tipoDocumento = 'DNI' AND nroDocumento = '46000000'
+
+    EXEC Parques.sp_AltaTipoParque
+        @nombre = 'Parque Nacional', @descripcion = 'Jurisdiccion nacional'
+
+    SELECT @idTipoParque_TEST = idTipoParque
+    FROM Parques.TipoParque
+    WHERE nombre = 'Parque Nacional'
+
+    EXEC Parques.sp_AltaParque
+        @idTipoParque = @idTipoParque_TEST, @nombre = 'Parque Nacional Nahuel Huapi',
+        @region = '-', @provincia = 'Rio Negro', @superficie = 717.26
+
+    SELECT @idParque_TEST = idParque
+    FROM Parques.Parque
+    WHERE nombre = 'Parque Nacional Nahuel Huapi'
+
+
+    EXEC Personal.sp_AltaHistorialGuardaparque
+        @idParque = @idParque_TEST, @idGuardaparque = @idGuardaparque_TEST, @fechaIngreso = '2025-08-23', @fechaEgreso = NULL
+
+    SELECT @idHistorial_TEST = idHistorial
+    FROM Personal.HistorialGuardaparque
+    WHERE idGuardaparque = @idGuardaparque_TEST AND idParque = @idParque_TEST
+
+    SELECT *
+    FROM Personal.HistorialGuardaparque
+
+    -- Modificación exitosa
+    EXEC Personal.sp_ModificacionHistorialGuardaparque @idHistorial = @idHistorial_TEST, @idParque = @idParque_TEST,
+        @idGuardaparque = @idGuardaparque_TEST, @fechaIngreso = '2026-06-10', @fechaEgreso = NULL
+
+    SELECT *
+    FROM Personal.HistorialGuardaparque
+
+
+    -- Baja exitosa
+    EXEC Personal.sp_BajaHistorialGuardaparque
+        @idHistorial = @idHistorial_TEST
+
+    SELECT *
+    FROM Personal.HistorialGuardaparque
+
+
+    -- Eliminacion exitosa
+    EXEC Personal.sp_EliminarHistorialGuardaparque
+        @idHistorial = @idHistorial_TEST
+
+    SELECT *
+    FROM Personal.HistorialGuardaparque
 
 ROLLBACK TRANSACTION
 

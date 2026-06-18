@@ -1101,6 +1101,12 @@ BEGIN
     DECLARE @errores VARCHAR(1000) = ''
 
     IF NOT EXISTS (
+        SELECT 1 FROM Personal.HistorialGuardaparque
+        WHERE idHistorial = @idHistorial
+    )
+        SET @errores += '- El historial no existe.' + CHAR(10)
+
+    IF NOT EXISTS (
         SELECT 1 FROM Parques.Parque
         WHERE idParque = @idParque
     )
@@ -1162,7 +1168,7 @@ BEGIN
     SET NOCOUNT ON
     DECLARE @errores VARCHAR(100) = ''
 
-    IF EXISTS (
+    IF NOT EXISTS (
         SELECT 1 FROM Personal.HistorialGuardaparque
         WHERE idHistorial = @idHistorial
     )
