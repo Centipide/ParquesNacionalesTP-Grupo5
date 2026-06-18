@@ -1587,3 +1587,125 @@ BEGIN CATCH
 END CATCH;
 ROLLBACK TRANSACTION;
 GO
+
+-- ========================================================================
+-- ESCENARIOS DE ERROR COMPLEMENTARIOS (AUDITORÍA DE VALIDACIONES CRÍTICAS)
+-- ========================================================================
+
+--- ========================================================================
+--- TEST ERROR: MODIFICACIÓN CON ID INEXISTENTE
+--- ========================================================================
+-- ESCENARIO ESPERADO: Debe fallar atrapando que el ID no existe en el sistema.
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    EXEC Concesiones.sp_ModificacionEmpresaConcesionaria
+        @idEmpresaConcesionaria = -999, -- ID que jamás va a existir
+        @cuit = '20444444441',
+        @razonSocial = 'Empresa Fantasma S.A.',
+        @contacto = NULL;
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (ID Empresa Inexistente)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+
+BEGIN TRY
+    EXEC Concesiones.sp_ModificacionConcesion
+        @idConcesion = -999, -- ID que jamás va a existir
+        @idEmpresaConcesionaria = 1,
+        @idTipoActividadConcesion = 1,
+        @idParque = 1,
+        @fechaInicio = '2026-01-01',
+        @fechaFin = '2026-12-31',
+        @montoAlquiler = 50000.00,
+        @estado = 'Activa';
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (ID Concesion Inexistente)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+-- ========================================================================
+-- TEST ERROR: VIOLACIÓN DE UNICIDAD (CUIT Y NOMBRE DUPLICADOS)
+-- ========================================================================
+-- ESCENARIO ESPERADO: El sistema debe impedir la clonación de datos persistentes.
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    -- Insertamos una empresa base
+    INSERT INTO Concesiones.EmpresaConcesionaria (cuit, razonSocial) 
+    VALUES ('30888888881', 'Empresa Original S.A.');
+
+    -- Intentamos forzar el alta de otra empresa con el MISMO CUIT usando el SP
+    EXEC Concesiones.sp_AltaEmpresaConcesionaria
+        @cuit = '30888888881', -- CUIT Duplicado intencional
+        @razonSocial = 'Empresa Cloncito S.A.',
+        @contacto = NULL;
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (CUIT Duplicado)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+
+BEGIN TRY
+    -- Insertamos un rubro base
+    INSERT INTO Concesiones.TipoActividadConcesion (nombre) 
+    VALUES ('Catamarán Nocturno');
+
+    -- Intentamos forzar el alta del mismo rubro por SP
+    EXEC Concesiones.sp_AltaTipoActividadConcesion
+        @nombre = 'Catamarán Nocturno', -- Nombre Duplicado intencional
+        @descripcionActividad = 'Clon de rubro';
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (Rubro Duplicado)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+-- ========================================================================
+-- TEST ERROR: ELIMINACIÓN BLOQUEADA POR INTEGRIDAD REFERENCIAL (FK)
+-- ========================================================================
+-- ESCENARIO ESPERADO: El SP debe impedir el DELETE físico porque la empresa tiene hijos.
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    DECLARE @idEmpresa INT, @idActividad INT, @idParque INT;
+    DECLARE @idTipoParque INT;
+
+    -- Creamos la estructura referencial mínima en el scope transaccional
+    INSERT INTO Parques.TipoParque (nombre) VALUES ('TEST_Bloqueo');
+    SET @idTipoParque = SCOPE_IDENTITY();
+    
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie) 
+    VALUES (@idTipoParque, 'Parque de Test Bloqueo', 'L', 'P', 100);
+    SET @idParque = SCOPE_IDENTITY();
+    
+    INSERT INTO Concesiones.EmpresaConcesionaria (cuit, razonSocial) 
+    VALUES ('30555555551', 'Empresa Con Contrato Activo S.A.');
+    SET @idEmpresa = SCOPE_IDENTITY();
+    
+    INSERT INTO Concesiones.TipoActividadConcesion (nombre) 
+    VALUES ('Rubro Con Contrato Activo');
+    SET @idActividad = SCOPE_IDENTITY();
+    
+    -- Le metemos un contrato hijo directo a la tabla Concesion
+    INSERT INTO Concesiones.Concesion (idEmpresaConcesionaria, idTipoActividadConcesion, idParque, fechaInicio, fechaFin, montoAlquiler, estado)
+    VALUES (@idEmpresa, @idActividad, @idParque, '2026-01-01', '2026-12-31', 5000, 'Activa');
+
+    -- Intentamos borrar la empresa madre usando tu SP (Debe saltar tu control IF EXISTS)
+    EXEC Concesiones.sp_EliminarEmpresaConcesionaria @idEmpresaConcesionaria = @idEmpresa;
+
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (Fallo de Integridad Referencial)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+ROLLBACK TRANSACTION;
+GO

@@ -1192,19 +1192,15 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @errores VARCHAR(1000) = '';
 
-    -- Validación 1: CUIT obligatorio, no vacío y longitud exacta
-    IF @cuit IS NULL OR LEN(LTRIM(RTRIM(@cuit))) <> 11
-        SET @errores += '- El CUIT es obligatorio y debe contener exactamente 11 caracteres numéricos.' + CHAR(10);
+    IF @cuit IS NULL OR LEN(LTRIM(RTRIM(@cuit))) <> 11 OR @cuit LIKE '%[^0-9]%'
+        SET @errores += '- El CUIT es obligatorio, debe contener exactamente 11 caracteres y ser numérico puro.' + CHAR(10);
     
-    -- Validación 2: Unicidad del CUIT (Evitar duplicados en el padrón)
     IF EXISTS (SELECT 1 FROM Concesiones.EmpresaConcesionaria WHERE cuit = @cuit)
         SET @errores += '- El CUIT ingresado ya se encuentra asignado a otra empresa concesionaria.' + CHAR(10);
 
-    -- Validación 3: Razón Social obligatoria y no vacía
     IF @razonSocial IS NULL OR LTRIM(RTRIM(@razonSocial)) = ''
         SET @errores += '- La razón social es un campo obligatorio y no puede quedar vacío.' + CHAR(10);
 
-    -- Evaluación del acumulador unificado de la cátedra
     IF @errores <> ''
     BEGIN
         RAISERROR(@errores, 16, 1);
@@ -1213,8 +1209,6 @@ BEGIN
 
     INSERT INTO Concesiones.EmpresaConcesionaria (cuit, razonSocial, contacto)
     VALUES (LTRIM(RTRIM(@cuit)), LTRIM(RTRIM(@razonSocial)), LTRIM(RTRIM(@contacto)));
-
-    SELECT SCOPE_IDENTITY() AS idEmpresaConcesionariaNueva;
 END;
 GO
 
@@ -1231,8 +1225,8 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM Concesiones.EmpresaConcesionaria WHERE idEmpresaConcesionaria = @idEmpresaConcesionaria)
         SET @errores += '- El ID de la empresa concesionaria especificado no existe.' + CHAR(10);
 
-    IF @cuit IS NULL OR LEN(LTRIM(RTRIM(@cuit))) <> 11
-        SET @errores += '- El CUIT es obligatorio y debe poseer 11 caracteres.' + CHAR(10);
+    IF @cuit IS NULL OR LEN(LTRIM(RTRIM(@cuit))) <> 11 OR @cuit LIKE '%[^0-9]%'
+        SET @errores += '- El CUIT es obligatorio, debe contener exactamente 11 caracteres y ser numérico puro.' + CHAR(10);
 
     IF EXISTS (SELECT 1 FROM Concesiones.EmpresaConcesionaria WHERE cuit = @cuit AND idEmpresaConcesionaria <> @idEmpresaConcesionaria)
         SET @errores += '- El nuevo CUIT ingresado ya pertenece a otra empresa concesionaria.' + CHAR(10);
@@ -1446,14 +1440,16 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE idParque = @idParque)
         SET @errores += '- El ID del parque especificado no existe.' + CHAR(10);
 
-    IF @fechaFin <= @fechaInicio
+    IF @fechaInicio IS NULL OR @fechaFin IS NULL
+        SET @errores += '- Las fechas de inicio y fin de contrato son obligatorias.' + CHAR(10);
+    ELSE IF @fechaFin <= @fechaInicio
         SET @errores += '- La fecha de finalización debe ser estrictamente posterior a la fecha de inicio.' + CHAR(10);
 
-    IF @montoAlquiler <= 0
-        SET @errores += '- El monto del alquiler debe ser una magnitud mayor a cero.' + CHAR(10);
+    IF @montoAlquiler IS NULL OR @montoAlquiler <= 0
+        SET @errores += '- El monto del alquiler debe ser una magnitud mayor a cero y no nula.' + CHAR(10);
 
-    IF @estado NOT IN ('Activa', 'Vencida', 'Cancelada')
-        SET @errores += '- El estado debe ser Activa, Vencida o Cancelada.' + CHAR(10);
+    IF @estado IS NULL OR @estado NOT IN ('Activa', 'Vencida', 'Cancelada')
+        SET @errores += '- El estado es obligatorio y debe ser Activa, Vencida o Cancelada.' + CHAR(10);
 
     IF @errores <> ''
     BEGIN
@@ -1556,10 +1552,12 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM Concesiones.Concesion WHERE idConcesion = @idConcesion)
         SET @errores += '- El ID del contrato de concesión especificado no existe.' + CHAR(10);
 
-    IF @monto <= 0
-        SET @errores += '- El monto a modificar debe ser mayor a cero.' + CHAR(10);
+    IF @monto IS NULL OR @monto <= 0
+        SET @errores += '- El monto a modificar es obligatorio y debe ser mayor a cero.' + CHAR(10);
 
-    IF @fechaVencimiento < @fechaEmision
+    IF @fechaVencimiento IS NULL OR @fechaEmision IS NULL OR @fechaPago IS NULL
+        SET @errores += '- Las fechas de pago, emisión y vencimiento son mandatorias en la modificación.' + CHAR(10);
+    ELSE IF @fechaVencimiento < @fechaEmision
         SET @errores += '- La fecha de vencimiento no puede ser anterior a la fecha de emisión.' + CHAR(10);
 
     IF @errores <> ''
