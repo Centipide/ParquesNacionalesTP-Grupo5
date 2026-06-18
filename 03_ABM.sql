@@ -497,41 +497,6 @@ END
 GO
 
 
-CREATE OR ALTER PROCEDURE Actividades.sp_ModificacionDetalleContratacion
-    @idDetalleContratacion INT,
-    @idVenta               INT,
-    @costoTotal            DECIMAL(12,2)
-AS
-BEGIN
-    SET NOCOUNT ON
-
-    DECLARE @errores VARCHAR(500) = '';
-
-    IF NOT EXISTS (SELECT 1 FROM Actividades.DetalleContratacion
-                   WHERE idDetalleContratacion = @idDetalleContratacion)
-        SET @errores = @errores + 'El id de Detalle Contratacion no existe.' + CHAR(10);
-
-    IF NOT EXISTS (SELECT 1 FROM Ventas.Venta
-                   WHERE idVenta = @idVenta)
-        SET @errores = @errores + 'El id de Venta no existe.' + CHAR(10);
-
-    IF @costoTotal < 0
-        SET @errores = @errores + 'El costo total no puede ser negativo.' + CHAR(10);
-
-    IF @errores != ''
-    BEGIN
-        RAISERROR(@errores, 16, 1);
-        RETURN;
-    END
-
-    UPDATE Actividades.DetalleContratacion
-    SET    idVenta    = @idVenta,
-           costoTotal = @costoTotal
-    WHERE  idDetalleContratacion = @idDetalleContratacion;
-END
-GO
-
-
 CREATE OR ALTER PROCEDURE Actividades.sp_BajaDetalleContratacion
     @idDetalleContratacion INT
 AS
@@ -576,7 +541,7 @@ CREATE TABLE Actividades.Contratacion (
     CONSTRAINT CK_Cont_Costo CHECK (costo >= 0),
     CONSTRAINT CK_Cont_Personas CHECK (cantidadPersonas > 0),
     CONSTRAINT CK_Cont_Estado CHECK (
-        estado IN ('Pendiente','Confirmada','Cancelada','Completada')
+        estado IN ('Confirmada','Cancelada','Completada')
     )
 );
 GO

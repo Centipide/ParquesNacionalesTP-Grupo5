@@ -78,19 +78,8 @@ END CATCH
 
 
 
-/*
-TipoActividadTuristica X
-ActividadTuristica X
-GuiaAutorizacion
-ActividadProgramada
-Contratacion
-DetalleContratacion
-*/
-
-
-
 -- ===========================================================
--- CASOS EXITOSOS - TipoActividadTuristica'
+-- CASOS EXITOSOS - TipoActividadTuristica
 -- ============================================================
 
 USE ParquesNacionales;
@@ -133,9 +122,9 @@ BEGIN TRANSACTION
 
 ROLLBACK TRANSACTION;
 
--- ============================================================
+-- ************************************************************
 -- CASOS DE ERROR - TipoActividadTuristica
--- ============================================================
+-- ************************************************************
 
 -- ********************** Alta *******************************
 
@@ -287,9 +276,9 @@ BEGIN TRANSACTION
 ROLLBACK TRANSACTION;
 GO
 
--- ============================================================
+-- ************************************************************
 -- CASOS DE ERROR - ActividadTuristica
--- ============================================================
+-- ************************************************************
 
 -- ********************** Alta *******************************
 
@@ -371,6 +360,903 @@ BEGIN TRY
 
     EXEC Actividades.sp_BajaActividadTuristica
         @idActividadTuristica = -1;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+-- ============================================================
+-- CASOS EXITOSOS - GuiaAutorizacion
+-- ============================================================
+
+USE ParquesNacionales;
+GO
+
+BEGIN TRANSACTION
+
+    DECLARE @idGuia INT;
+    DECLARE @idActividadTuristica INT;
+
+    DECLARE @idTipoParque INT;
+    DECLARE @idParque INT;
+    DECLARE @idTipoActividad INT;
+
+    -- Datos necesarios para el test
+
+    INSERT INTO Parques.TipoParque (nombre, descripcion)
+    VALUES ('TEST_TipoParque', 'Tipo de parque para testing');
+
+    SET @idTipoParque = SCOPE_IDENTITY();
+
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+
+    SET @idParque = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.TipoActividadTuristica (descripcion)
+    VALUES ('TEST_TipoActividad');
+
+    SET @idTipoActividad = SCOPE_IDENTITY();
+
+    EXEC Actividades.sp_AltaActividadTuristica
+        @idParque = @idParque,
+        @idTipoActividadTuristica = @idTipoActividad,
+        @nombre = 'TEST_Actividad',
+        @costo = 1000,
+        @duracion = 120,
+        @cupoMaximo = 20;
+
+    SELECT @idActividadTuristica = idActividadTuristica
+    FROM Actividades.ActividadTuristica
+    WHERE nombre = 'TEST_Actividad';
+
+    INSERT INTO Guias.Guia 
+        (nombre, apellido, fechaNacimiento,
+         tipoDocumento, nroDocumento,
+         email, vigenciaAutorizacion)
+    VALUES
+        ('TEST_Nombre', 'TEST_Apellido', '1990-01-01',
+         'DNI', '12345678',
+         'test@guia.com', '2030-01-01');
+
+    SET @idGuia = SCOPE_IDENTITY();
+
+    -- Alta exitosa
+
+    EXEC Actividades.sp_AltaGuiaAutorizacion
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica;
+
+    -- Debería devolver una fila
+
+    SELECT *
+    FROM Actividades.GuiaAutorizacion
+    WHERE idGuia = @idGuia AND idActividadTuristica = @idActividadTuristica;
+
+    -- Baja exitosa
+
+    EXEC Actividades.sp_BajaGuiaAutorizacion
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica;
+
+    -- Debería devolver 0 filas
+
+    SELECT *
+    FROM Actividades.GuiaAutorizacion
+    WHERE idGuia = @idGuia AND idActividadTuristica = @idActividadTuristica;
+
+ROLLBACK TRANSACTION;
+GO
+
+-- ************************************************************
+-- CASOS DE ERROR - GuiaAutorizacion
+-- ************************************************************
+
+
+-- ********************** Alta *******************************
+
+USE ParquesNacionales;
+GO
+
+-- id de Guia no existe
+-- id de Actividad Turistica no existe
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    EXEC Actividades.sp_AltaGuiaAutorizacion
+        @idGuia = -1,
+        @idActividadTuristica = -1;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+USE ParquesNacionales;
+GO
+
+-- El guia ya esta autorizado para esta actividad
+
+BEGIN TRANSACTION;
+
+-- creamos los mismos datos auxiliares del caso exitoso
+
+    DECLARE @idGuia INT;
+    DECLARE @idActividadTuristica INT;
+
+    DECLARE @idTipoParque INT;
+    DECLARE @idParque INT;
+    DECLARE @idTipoActividad INT;
+
+    -- Datos necesarios para el test
+
+    INSERT INTO Parques.TipoParque (nombre, descripcion)
+    VALUES ('TEST_TipoParque', 'Tipo de parque para testing');
+
+    SET @idTipoParque = SCOPE_IDENTITY();
+
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+
+    SET @idParque = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.TipoActividadTuristica (descripcion)
+    VALUES ('TEST_TipoActividad');
+
+    SET @idTipoActividad = SCOPE_IDENTITY();
+
+    EXEC Actividades.sp_AltaActividadTuristica
+        @idParque = @idParque,
+        @idTipoActividadTuristica = @idTipoActividad,
+        @nombre = 'TEST_Actividad',
+        @costo = 1000,
+        @duracion = 120,
+        @cupoMaximo = 20;
+
+    SELECT @idActividadTuristica = idActividadTuristica
+    FROM Actividades.ActividadTuristica
+    WHERE nombre = 'TEST_Actividad';
+
+    INSERT INTO Guias.Guia 
+        (nombre, apellido, fechaNacimiento,
+         tipoDocumento, nroDocumento,
+         email, vigenciaAutorizacion)
+    VALUES
+        ('TEST_Nombre', 'TEST_Apellido', '1990-01-01',
+         'DNI', '12345678',
+         'test@guia.com', '2030-01-01');
+
+    SET @idGuia = SCOPE_IDENTITY();
+
+BEGIN TRY
+
+    EXEC Actividades.sp_AltaGuiaAutorizacion
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica;
+
+    EXEC Actividades.sp_AltaGuiaAutorizacion
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
+
+-- ********************** Baja *******************************
+
+USE ParquesNacionales;
+GO
+
+-- No existe una autorizacion para ese guia y actividad
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    EXEC Actividades.sp_BajaGuiaAutorizacion
+        @idGuia = -1,
+        @idActividadTuristica = -1;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+
+-- ============================================================
+-- CASOS EXITOSOS - ActividadProgramada
+-- ============================================================
+
+USE ParquesNacionales;
+GO
+
+BEGIN TRANSACTION
+
+    DECLARE @idActividadProgramada INT;
+
+    DECLARE @idTipoParque INT;
+    DECLARE @idParque INT;
+
+    DECLARE @idTipoActividad INT;
+    DECLARE @idActividadTuristica INT;
+
+    DECLARE @idGuia INT;
+
+    -- Datos necesarios para el test
+
+    INSERT INTO Parques.TipoParque (nombre, descripcion)
+    VALUES ('TEST_TipoParque', 'Tipo de parque para testing');
+
+    SET @idTipoParque = SCOPE_IDENTITY();
+
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+
+    SET @idParque = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.TipoActividadTuristica (descripcion)
+    VALUES ('TEST_TipoActividad');
+
+    SET @idTipoActividad = SCOPE_IDENTITY();
+
+    EXEC Actividades.sp_AltaActividadTuristica
+        @idParque = @idParque,
+        @idTipoActividadTuristica = @idTipoActividad,
+        @nombre = 'TEST_Actividad',
+        @costo = 1000,
+        @duracion = 120,
+        @cupoMaximo = 20;
+
+    SELECT @idActividadTuristica = idActividadTuristica
+    FROM Actividades.ActividadTuristica
+    WHERE nombre = 'TEST_Actividad';
+
+    INSERT INTO Guias.Guia
+        (nombre, apellido, fechaNacimiento,
+         tipoDocumento, nroDocumento,
+         email, vigenciaAutorizacion)
+    VALUES
+        ('TEST_Nombre', 'TEST_Apellido', '1990-01-01',
+         'DNI', '12345678',
+         'test@guia.com', '2030-01-01');
+
+    SET @idGuia = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.GuiaAutorizacion (idGuia, idActividadTuristica)
+    VALUES (@idGuia, @idActividadTuristica);
+
+    -- Alta exitosa
+
+    EXEC Actividades.sp_AltaActividadProgramada
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica,
+        @fecha = '2026-12-01',
+        @horaInicio = '09:00',
+        @observaciones = 'TEST_Observaciones';
+
+    SELECT @idActividadProgramada = idActividadProgramada
+    FROM Actividades.ActividadProgramada
+    WHERE idGuia = @idGuia
+      AND idActividadTuristica = @idActividadTuristica
+      AND fecha = '2026-12-01'
+      AND horaInicio = '09:00';
+
+    -- Debería devolver una fila
+
+    SELECT *
+    FROM Actividades.ActividadProgramada
+    WHERE idActividadProgramada = @idActividadProgramada;
+
+    -- Modificación exitosa
+
+    EXEC Actividades.sp_ModificacionActividadProgramada
+        @idActividadProgramada = @idActividadProgramada,
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica,
+        @fecha = '2026-12-02',
+        @horaInicio = '10:00',
+        @estado = 'Realizada',
+        @observaciones = 'TEST_Modificada';
+
+    -- Debería devolver una fila modificada
+
+    SELECT *
+    FROM Actividades.ActividadProgramada
+    WHERE idActividadProgramada = @idActividadProgramada;
+
+ROLLBACK TRANSACTION;
+GO
+
+-- ************************************************************
+-- CASOS DE ERROR - ActividadProgramada
+-- ************************************************************
+
+
+-- ********************** Alta *******************************
+
+USE ParquesNacionales;
+GO
+
+-- id de Guia no existe
+-- id de Actividad Turistica no existe
+-- guia no autorizado
+-- fecha vacia
+-- hora de inicio vacia
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    EXEC Actividades.sp_AltaActividadProgramada
+        @idGuia = -1,
+        @idActividadTuristica = -1,
+        @fecha = NULL,
+        @horaInicio = NULL,
+        @observaciones = NULL;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+USE ParquesNacionales;
+GO
+
+-- Ya existe una actividad programada con esos datos
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    DECLARE @idActividadProgramada INT;
+
+    DECLARE @idTipoParque INT;
+    DECLARE @idParque INT;
+
+    DECLARE @idTipoActividad INT;
+    DECLARE @idActividadTuristica INT;
+
+    DECLARE @idGuia INT;
+
+    -- Datos necesarios para el test
+
+    INSERT INTO Parques.TipoParque (nombre, descripcion)
+    VALUES ('TEST_TipoParque', 'Tipo de parque para testing');
+
+    SET @idTipoParque = SCOPE_IDENTITY();
+
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+
+    SET @idParque = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.TipoActividadTuristica (descripcion)
+    VALUES ('TEST_TipoActividad');
+
+    SET @idTipoActividad = SCOPE_IDENTITY();
+
+    EXEC Actividades.sp_AltaActividadTuristica
+        @idParque = @idParque,
+        @idTipoActividadTuristica = @idTipoActividad,
+        @nombre = 'TEST_Actividad',
+        @costo = 1000,
+        @duracion = 120,
+        @cupoMaximo = 20;
+
+    SELECT @idActividadTuristica = idActividadTuristica
+    FROM Actividades.ActividadTuristica
+    WHERE nombre = 'TEST_Actividad';
+
+    INSERT INTO Guias.Guia
+        (nombre, apellido, fechaNacimiento,
+         tipoDocumento, nroDocumento,
+         email, vigenciaAutorizacion)
+    VALUES
+        ('TEST_Nombre', 'TEST_Apellido', '1990-01-01',
+         'DNI', '12345678',
+         'test@guia.com', '2030-01-01');
+
+    SET @idGuia = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.GuiaAutorizacion (idGuia, idActividadTuristica)
+    VALUES (@idGuia, @idActividadTuristica);
+
+    EXEC Actividades.sp_AltaActividadProgramada
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica,
+        @fecha = '2026-12-01',
+        @horaInicio = '09:00',
+        @observaciones = 'TEST';
+
+    EXEC Actividades.sp_AltaActividadProgramada
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica,
+        @fecha = '2026-12-01',
+        @horaInicio = '09:00',
+        @observaciones = 'TEST';
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
+
+
+USE ParquesNacionales;
+GO
+
+-- El guia no esta autorizado para realizar esta actividad
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+        DECLARE @idActividadProgramada INT;
+
+    DECLARE @idTipoParque INT;
+    DECLARE @idParque INT;
+
+    DECLARE @idTipoActividad INT;
+    DECLARE @idActividadTuristica INT;
+
+    DECLARE @idGuia INT;
+
+    -- Datos necesarios para el test
+
+    INSERT INTO Parques.TipoParque (nombre, descripcion)
+    VALUES ('TEST_TipoParque', 'Tipo de parque para testing');
+
+    SET @idTipoParque = SCOPE_IDENTITY();
+
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+
+    SET @idParque = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.TipoActividadTuristica (descripcion)
+    VALUES ('TEST_TipoActividad');
+
+    SET @idTipoActividad = SCOPE_IDENTITY();
+
+    EXEC Actividades.sp_AltaActividadTuristica
+        @idParque = @idParque,
+        @idTipoActividadTuristica = @idTipoActividad,
+        @nombre = 'TEST_Actividad',
+        @costo = 1000,
+        @duracion = 120,
+        @cupoMaximo = 20;
+
+    SELECT @idActividadTuristica = idActividadTuristica
+    FROM Actividades.ActividadTuristica
+    WHERE nombre = 'TEST_Actividad';
+
+    INSERT INTO Guias.Guia
+        (nombre, apellido, fechaNacimiento,
+         tipoDocumento, nroDocumento,
+         email, vigenciaAutorizacion)
+    VALUES
+        ('TEST_Nombre', 'TEST_Apellido', '1990-01-01',
+         'DNI', '12345678',
+         'test@guia.com', '2030-01-01');
+
+    SET @idGuia = SCOPE_IDENTITY();
+
+    -- no creamos guiaAutorizacion
+
+    EXEC Actividades.sp_AltaActividadProgramada
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica,
+        @fecha = '2026-12-01',
+        @horaInicio = '09:00';
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
+
+-- ********************** Modificación *******************************
+
+USE ParquesNacionales;
+GO
+
+-- id de Actividad Programada no existe
+-- id de Guia no existe
+-- id de Actividad Turistica no existe
+-- guia no autorizado
+-- fecha vacia
+-- hora de inicio vacia
+-- estado invalido
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    EXEC Actividades.sp_ModificacionActividadProgramada
+        @idActividadProgramada = -1,
+        @idGuia = -1,
+        @idActividadTuristica = -1,
+        @fecha = NULL,
+        @horaInicio = NULL,
+        @estado = 'CualquierCosa',
+        @observaciones = NULL;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+
+
+-- ============================================================
+-- CASOS EXITOSOS - DetalleContratacion
+-- ============================================================
+
+USE ParquesNacionales;
+GO
+
+BEGIN TRANSACTION
+
+    DECLARE @idVisitante INT;
+    DECLARE @idVenta INT;
+    DECLARE @idDetalleContratacion INT;
+
+    -- Datos necesarios para el test
+
+    INSERT INTO Ventas.Visitante (nombre, apellido, email, direccion, telefono)
+    VALUES ('TEST_Nombre', 'TEST_Apellido', 'test@correo.com', 'TEST_Direccion', '123456789');
+
+    SET @idVisitante = SCOPE_IDENTITY();
+
+    INSERT INTO Ventas.Venta (idVisitante, formaPago, puntoVenta, total)
+    VALUES (@idVisitante, 'Efectivo', 'TEST_PuntoVenta', 0);
+
+    SET @idVenta = SCOPE_IDENTITY();
+
+    -- Alta exitosa
+
+    EXEC Actividades.sp_AltaDetalleContratacion
+        @idVenta = @idVenta,
+        @costoTotal = 15000;
+
+    SELECT @idDetalleContratacion = idDetalleContratacion
+    FROM Actividades.DetalleContratacion
+    WHERE idVenta = @idVenta AND costoTotal = 15000;
+
+    -- Debería devolver una fila
+
+    SELECT *
+    FROM Actividades.DetalleContratacion
+    WHERE idDetalleContratacion = @idDetalleContratacion;
+
+    -- Modificación exitosa
+
+    EXEC Actividades.sp_ModificacionDetalleContratacion
+        @idDetalleContratacion = @idDetalleContratacion,
+        @idVenta = @idVenta,
+        @costoTotal = 20000;
+
+    -- Debería devolver una fila modificada
+
+    SELECT *
+    FROM Actividades.DetalleContratacion
+    WHERE idDetalleContratacion = @idDetalleContratacion;
+
+    -- Baja exitosa
+
+    EXEC Actividades.sp_BajaDetalleContratacion
+        @idDetalleContratacion = @idDetalleContratacion;
+
+    -- Debería devolver 0 filas
+
+    SELECT *
+    FROM Actividades.DetalleContratacion
+    WHERE idDetalleContratacion = @idDetalleContratacion;
+
+ROLLBACK TRANSACTION;
+GO
+
+-- ************************************************************
+-- CASOS DE ERROR - DetalleContratacion
+-- ************************************************************
+
+-- ********************** Alta *******************************
+
+USE ParquesNacionales;
+GO
+
+-- id de Venta no existe
+-- costo total no puede ser negativo
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    EXEC Actividades.sp_AltaDetalleContratacion
+        @idVenta = -1,
+        @costoTotal = -1;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+-- ********************** Baja *******************************
+
+USE ParquesNacionales;
+GO
+
+-- id de Detalle Contratacion no existe
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    EXEC Actividades.sp_BajaDetalleContratacion
+        @idDetalleContratacion = -1;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+
+-- ============================================================
+-- CASOS EXITOSOS - Contratacion
+-- ============================================================
+
+USE ParquesNacionales;
+GO
+
+BEGIN TRANSACTION
+
+    DECLARE @idVisitante INT;
+    DECLARE @idVenta INT;
+    DECLARE @idDetalleContratacion INT;
+
+    DECLARE @idTipoParque INT;
+    DECLARE @idParque INT;
+
+    DECLARE @idTipoActividad INT;
+    DECLARE @idActividadTuristica INT;
+
+    DECLARE @idGuia INT;
+    DECLARE @idActividadProgramada INT;
+
+    DECLARE @idContratacion INT;
+
+    -- Datos necesarios para el test
+
+    INSERT INTO Ventas.Visitante (nombre, apellido, email, direccion, telefono)
+    VALUES ('TEST_Nombre', 'TEST_Apellido', 'test@test.com', 'TEST_Direccion', '123456789');
+
+    SET @idVisitante = SCOPE_IDENTITY();
+
+    INSERT INTO Ventas.Venta (idVisitante, formaPago, puntoVenta, total)
+    VALUES (@idVisitante, 'Efectivo', 'TEST_PuntoVenta', 0);
+
+    SET @idVenta = SCOPE_IDENTITY();
+
+    EXEC Actividades.sp_AltaDetalleContratacion
+        @idVenta = @idVenta,
+        @costoTotal = 15000;
+
+    SELECT @idDetalleContratacion = idDetalleContratacion
+    FROM Actividades.DetalleContratacion
+    WHERE idVenta = @idVenta;
+
+    -- Datos para ActividadProgramada
+
+    INSERT INTO Parques.TipoParque (nombre, descripcion)
+    VALUES ('TEST_TipoParque', 'Tipo de parque para testing');
+
+    SET @idTipoParque = SCOPE_IDENTITY();
+
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
+    VALUES (@idTipoParque,'TEST_Parque','TEST_Localidad','TEST_Provincia',1000);
+
+    SET @idParque = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.TipoActividadTuristica (descripcion)
+    VALUES ('TEST_TipoActividad');
+
+    SET @idTipoActividad = SCOPE_IDENTITY();
+
+    EXEC Actividades.sp_AltaActividadTuristica
+        @idParque = @idParque,
+        @idTipoActividadTuristica = @idTipoActividad,
+        @nombre = 'TEST_Actividad',
+        @costo = 1000,
+        @duracion = 120,
+        @cupoMaximo = 20;
+
+    SELECT @idActividadTuristica = idActividadTuristica
+    FROM Actividades.ActividadTuristica
+    WHERE nombre = 'TEST_Actividad';
+
+    INSERT INTO Guias.Guia
+        (nombre, apellido, fechaNacimiento,
+         tipoDocumento, nroDocumento,
+         email, vigenciaAutorizacion)
+    VALUES
+        ('TEST_Guia', 'TEST_Apellido', '1990-01-01',
+         'DNI', '12345678',
+         'testguia@test.com', '2030-01-01');
+
+    SET @idGuia = SCOPE_IDENTITY();
+
+    INSERT INTO Actividades.GuiaAutorizacion (idGuia, idActividadTuristica)
+    VALUES (@idGuia, @idActividadTuristica);
+
+    EXEC Actividades.sp_AltaActividadProgramada
+        @idGuia = @idGuia,
+        @idActividadTuristica = @idActividadTuristica,
+        @fecha = '2026-12-01',
+        @horaInicio = '09:00',
+        @observaciones = 'TEST';
+
+    SELECT @idActividadProgramada = idActividadProgramada
+    FROM Actividades.ActividadProgramada
+    WHERE idGuia = @idGuia AND idActividadTuristica = @idActividadTuristica;
+
+    -- Alta exitos
+
+    EXEC Actividades.sp_AltaContratacion
+        @idDetalleContratacion = @idDetalleContratacion,
+        @idActividadProgramada = @idActividadProgramada,
+        @costo = 5000,
+        @estado = 'Confirmada',
+        @cantidadPersonas = 4;
+
+    SELECT @idContratacion = idContratacion
+    FROM Actividades.Contratacion
+    WHERE idDetalleContratacion = @idDetalleContratacion AND idActividadProgramada = @idActividadProgramada;
+
+    -- Debería devolver una fila
+
+    SELECT *
+    FROM Actividades.Contratacion
+    WHERE idContratacion = @idContratacion;
+
+    -- Modificación exitosa
+
+    EXEC Actividades.sp_ModificacionContratacion
+        @idContratacion = @idContratacion,
+        @idDetalleContratacion = @idDetalleContratacion,
+        @idActividadProgramada = @idActividadProgramada,
+        @costo = 7000,
+        @estado = 'Completada',
+        @cantidadPersonas = 6;
+
+    -- Debería devolver una fila modificada
+
+    SELECT *
+    FROM Actividades.Contratacion
+    WHERE idContratacion = @idContratacion;
+
+ROLLBACK TRANSACTION;
+GO
+
+-- ************************************************************
+-- CASOS DE ERROR - Contratacion
+-- ************************************************************
+
+-- ********************** Alta *******************************
+
+USE ParquesNacionales;
+GO
+
+-- id de Detalle Contratacion no existe
+-- id de Actividad Programada no existe
+-- costo no puede ser negativo
+-- cantidad de personas debe ser mayor a 0
+-- estado inválido
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    EXEC Actividades.sp_AltaContratacion
+        @idDetalleContratacion = -1,
+        @idActividadProgramada = -1,
+        @costo = -1,
+        @estado = 'EstadoInvalido',
+        @cantidadPersonas = 0;
+
+END TRY
+BEGIN CATCH
+
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+-- ********************** Modificación *******************************
+
+USE ParquesNacionales;
+GO
+
+-- id de Contratacion no existe
+-- id de Detalle Contratacion no existe
+-- id de Actividad Programada no existe
+-- costo no puede ser negativo
+-- cantidad de personas debe ser mayor a 0
+-- estado inválido
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    EXEC Actividades.sp_ModificacionContratacion
+        @idContratacion = -1,
+        @idDetalleContratacion = -1,
+        @idActividadProgramada = -1,
+        @costo = -1,
+        @estado = 'EstadoInvalido',
+        @cantidadPersonas = 0;
 
 END TRY
 BEGIN CATCH
