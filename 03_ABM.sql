@@ -1675,3 +1675,110 @@ BEGIN
 END;
 GO
 
+-- ==========================================================
+-- TABLA Visitante
+-- ==========================================================
+CREATE OR ALTER PROCEDURE Ventas.sp_AltaVisitante
+    @nombre    VARCHAR(50),
+    @apellido  VARCHAR(50),
+    @email     VARCHAR(100) = NULL,
+    @direccion VARCHAR(100) = NULL,
+    @telefono  VARCHAR(20) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
+        SET @errores += '- El nombre del visitante es obligatorio y no puede quedar vacío.' + CHAR(10);
+
+    IF @apellido IS NULL OR LTRIM(RTRIM(@apellido)) = ''
+        SET @errores += '- El apellido del visitante es obligatorio y no puede quedar vacío.' + CHAR(10);
+
+    IF @email IS NOT NULL AND LTRIM(RTRIM(@email)) <> '' AND @email NOT LIKE '%_@__%.__%'
+        SET @errores += '- El formato del correo electrónico ingresado no es válido.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO Ventas.Visitante (nombre, apellido, email, direccion, telefono)
+    VALUES (
+        LTRIM(RTRIM(@nombre)), 
+        LTRIM(RTRIM(@apellido)), 
+        NULLIF(LTRIM(RTRIM(@email)), ''), 
+        NULLIF(LTRIM(RTRIM(@direccion)), ''), 
+        NULLIF(LTRIM(RTRIM(@telefono)), '')
+    );
+
+    SELECT SCOPE_IDENTITY() AS idVisitanteNuevo;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE Ventas.sp_ModificacionVisitante
+    @idVisitante INT,
+    @nombre      VARCHAR(50),
+    @apellido    VARCHAR(50),
+    @email       VARCHAR(100) = NULL,
+    @direccion   VARCHAR(100) = NULL,
+    @telefono    VARCHAR(20) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Ventas.Visitante WHERE idVisitante = @idVisitante)
+        SET @errores += '- El ID de visitante especificado no existe en el padrón central.' + CHAR(10);
+
+    IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
+        SET @errores += '- El nombre del visitante es requerido y no puede ser nulo.' + CHAR(10);
+
+    IF @apellido IS NULL OR LTRIM(RTRIM(@apellido)) = ''
+        SET @errores += '- El apellido del visitante es requerido y no puede ser nulo.' + CHAR(10);
+
+    IF @email IS NOT NULL AND LTRIM(RTRIM(@email)) <> '' AND @email NOT LIKE '%_@__%.__%'
+        SET @errores += '- El formato del correo electrónico ingresado no es válido.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    UPDATE Ventas.Visitante
+    SET nombre = LTRIM(RTRIM(@nombre)),
+        apellido = LTRIM(RTRIM(@apellido)),
+        email = NULLIF(LTRIM(RTRIM(@email)), ''),
+        direccion = NULLIF(LTRIM(RTRIM(@direccion)), ''),
+        telefono = NULLIF(LTRIM(RTRIM(@telefono)), '')
+    WHERE idVisitante = @idVisitante;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE Ventas.sp_EliminarVisitante
+    @idVisitante INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Ventas.Visitante WHERE idVisitante = @idVisitante)
+        SET @errores += '- El ID de visitante a eliminar no existe.' + CHAR(10);
+
+    IF EXISTS (SELECT 1 FROM Ventas.Venta WHERE idVisitante = @idVisitante)
+        SET @errores += '- Restricción de Integridad: No es posible remover al visitante debido a que registra tickets comerciales asociados en el módulo de ventas.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM Ventas.Visitante 
+    WHERE idVisitante = @idVisitante;
+    
+    PRINT 'Visitante removido del padrón de forma exitosa.';
+END;
+GO

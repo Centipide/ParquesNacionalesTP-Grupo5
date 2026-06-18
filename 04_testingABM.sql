@@ -1804,3 +1804,107 @@ END CATCH;
 
 ROLLBACK TRANSACTION;
 GO
+
+
+-- ========================================================================
+-- TESTING DE VISITANTE
+-- ========================================================================
+-- ************************************************************************
+-- TEST VISITANTE: CASO EXITOSO
+-- ************************************************************************
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    DECLARE @idVisitanteTest INT;
+
+    -- 1. Test Alta Exitosa (con datos opcionales completos)
+    EXEC Ventas.sp_AltaVisitante
+        @nombre = 'TEST_Carlos',
+        @apellido = 'Pellegrini',
+        @email = 'carlos@test.com',
+        @direccion = 'Av. de Mayo 450',
+        @telefono = '1144332211';
+
+    PRINT 'Evidencia post-alta:';
+    SELECT * FROM Ventas.Visitante WHERE email = 'carlos@test.com';
+
+    SELECT @idVisitanteTest = idVisitante FROM Ventas.Visitante WHERE email = 'carlos@test.com';
+
+    -- 2. Test Modificación Exitosa
+    EXEC Ventas.sp_ModificacionVisitante
+        @idVisitante = @idVisitanteTest,
+        @nombre = 'TEST_Carlos Alberto',
+        @apellido = 'Pellegrini',
+        @email = 'carlos_alberto@test.com',
+        @direccion = 'Av. de Mayo 500',
+        @telefono = '1144332211';
+
+    PRINT 'Evidencia post-modificación:';
+    SELECT * FROM Ventas.Visitante WHERE idVisitante = @idVisitanteTest;
+
+    -- 3. Test Eliminación Física Exitosa
+    EXEC Ventas.sp_EliminarVisitante @idVisitante = @idVisitanteTest;
+
+    PRINT 'Evidencia post-eliminación (Debe retornar vacío):';
+    SELECT * FROM Ventas.Visitante WHERE idVisitante = @idVisitanteTest;
+
+END TRY
+BEGIN CATCH
+    PRINT 'Error imprevisto en ejecución del camino feliz de visitantes: ' + ERROR_MESSAGE();
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
+
+
+-- ************************************************************************
+-- CASOS DE ERROR CONTROLADOS
+-- ************************************************************************
+
+-- Prueba A: Inserción maliciosa con campos mandatorios vacíos y email sin formato
+BEGIN TRANSACTION;
+BEGIN TRY
+    EXEC Ventas.sp_AltaVisitante 
+        @nombre = '  ', 
+        @apellido = NULL, 
+        @email = 'correo_invalido.com'; -- Rompe el patrón LIKE
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (Alta Defectuosa)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+
+-- Prueba B: Modificación con ID inexistente y parámetro obligatorio en nulo
+BEGIN TRY
+    EXEC Ventas.sp_ModificacionVisitante
+        @idVisitante = -999,
+        @nombre = NULL,
+        @apellido = 'Pérez',
+        @email = NULL;
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (Modificación Defectuosa)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+
+-- Prueba C: Intento de borrado interceptado por integridad referencial (FK)
+BEGIN TRY
+    DECLARE @idFalsoVisitante INT, @idFalsaVenta INT;
+
+    INSERT INTO Ventas.Visitante (nombre, apellido) VALUES ('TEST_Bloqueo', 'Ventas');
+    SET @idFalsoVisitante = SCOPE_IDENTITY();
+
+    -- Forzamos un ticket de cabecera ligado a este visitante
+    INSERT INTO Ventas.Venta (idVisitante, formaPago, puntoVenta, total)
+    VALUES (@idFalsoVisitante, 'Efectivo', 'Portal Test', 1500.00);
+
+    -- Intentamos remover al visitante mediante el SP
+    EXEC Ventas.sp_EliminarVisitante @idVisitante = @idFalsoVisitante;
+END TRY
+BEGIN CATCH
+    SELECT value AS [Errores Atrapados (Bloqueo por FK de Ventas)]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10)) WHERE value <> '';
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
