@@ -32,7 +32,7 @@ CREATE TABLE Parques.Parque (
     idParque     INT           IDENTITY(1,1),
     idTipoParque INT           NOT NULL,
     nombre       VARCHAR(50)   NOT NULL,
-    localidad    VARCHAR(50)   NOT NULL,
+    region    VARCHAR(50)   NOT NULL,
     provincia    VARCHAR(30)   NOT NULL,
     superficie   DECIMAL(10,2) NOT NULL,
 

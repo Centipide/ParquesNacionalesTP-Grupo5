@@ -652,7 +652,7 @@ GO
 CREATE OR ALTER PROCEDURE Parques.sp_AltaParque
     @idTipoParque INT,
     @nombre       VARCHAR(50),
-    @localidad    VARCHAR(50),
+    @region       VARCHAR(50),
     @provincia    VARCHAR(30),
     @superficie   DECIMAL(10,2)
 AS
@@ -669,8 +669,8 @@ BEGIN
     IF ISNULL(@nombre,'') = ''
     SET @errores += '- Falta ingresar nombre.' + CHAR(10)
 
-    IF ISNULL(@localidad,'') = ''
-    SET @errores += '- Falta ingresar localidad.' + CHAR(10)
+    IF ISNULL(@region,'') = ''
+    SET @errores += '- Falta ingresar region.' + CHAR(10)
 
     IF ISNULL(@provincia,'') = ''
     SET @errores += '- Falta ingresar provincia.' + CHAR(10)
@@ -685,9 +685,9 @@ BEGIN
     END
 
     INSERT INTO Parques.Parque
-        (idTipoParque, nombre, localidad, provincia, superficie)
+        (idTipoParque, nombre, region, provincia, superficie)
     VALUES
-        (@idTipoParque, @nombre, @localidad, @provincia, @superficie)
+        (@idTipoParque, @nombre, @region, @provincia, @superficie)
     
     SELECT SCOPE_IDENTITY() AS idParqueNuevo
 END
@@ -697,7 +697,7 @@ CREATE OR ALTER PROCEDURE Parques.sp_ModificacionParque
     @idParque     INT,
     @idTipoParque INT,
     @nombre       VARCHAR(50),
-    @localidad    VARCHAR(50),
+    @region       VARCHAR(50),
     @provincia    VARCHAR(30),
     @superficie   DECIMAL(10,2)
 AS
@@ -727,7 +727,7 @@ BEGIN
     END
 
     UPDATE Parques.Parque
-    SET idTipoParque = @idTipoParque, nombre = @nombre, localidad = @localidad,
+    SET idTipoParque = @idTipoParque, nombre = @nombre, region = @region,
         provincia = @provincia, superficie = @superficie
     WHERE idParque = @idParque
 END
@@ -970,12 +970,12 @@ BEGIN
     )
         SET @errores += '- Id de guardaparques no existe.' + CHAR(10)
 
-    IF (@fechaEgresoCargo IS NOT NULL AND @fechaIngresoCargo < @fechaIngresoCargo)
+    IF (@fechaEgresoCargo IS NOT NULL AND @fechaEgresoCargo < @fechaIngresoCargo)
         SET @errores += '- Fecha de egreso no puede ser menor a ingreso.' + CHAR(10)
 
     IF EXISTS (
         SELECT 1 FROM Personal.Guardaparque
-        WHERE tipoDocumento = @tipoDocumento AND nroDocumento = @nroDocumento
+        WHERE tipoDocumento = @tipoDocumento AND nroDocumento = @nroDocumento AND idGuardaparque != @idGuardaparque
     )
         SET @errores += '- Documento ya existente' + CHAR(10)
 
@@ -1101,6 +1101,12 @@ BEGIN
     DECLARE @errores VARCHAR(1000) = ''
 
     IF NOT EXISTS (
+        SELECT 1 FROM Personal.HistorialGuardaparque
+        WHERE idHistorial = @idHistorial
+    )
+        SET @errores += '- El historial no existe.' + CHAR(10)
+
+    IF NOT EXISTS (
         SELECT 1 FROM Parques.Parque
         WHERE idParque = @idParque
     )
@@ -1162,7 +1168,7 @@ BEGIN
     SET NOCOUNT ON
     DECLARE @errores VARCHAR(100) = ''
 
-    IF EXISTS (
+    IF NOT EXISTS (
         SELECT 1 FROM Personal.HistorialGuardaparque
         WHERE idHistorial = @idHistorial
     )

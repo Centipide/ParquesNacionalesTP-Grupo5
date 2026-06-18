@@ -13,13 +13,15 @@
 USE ParquesNacionales
 GO
 
--- ==========================================================
--- TESTING Parque
--- ==========================================================
--- idTipoParque no existente, nombre vacio, localidad vacia, provincia vacia, superficie invalida
+-- ************************************************************
+-- CASOS DE ERROR - Parque
+-- ************************************************************
+USE ParquesNacionales
+GO
+-- idTipoParque no existente, nombre vacio, region vacia, provincia vacia, superficie invalida
 BEGIN TRY
 	EXEC Parques.sp_AltaParque @idTipoParque = 54, @nombre = '',
-		@localidad = '', @provincia = '', @superficie = '0'
+		@region = '', @provincia = '', @superficie = '0'
 END TRY
 BEGIN CATCH
 	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
@@ -29,7 +31,7 @@ END CATCH
 -- idParque no existe, idTipoParque no existe, superficie invalida
 BEGIN TRY
 	EXEC Parques.sp_ModificacionParque  @idParque = 1, @idTipoParque = 54, @nombre = '',
-		@localidad = '', @provincia = '', @superficie = '0'
+		@region = '', @provincia = '', @superficie = '0'
 END TRY
 BEGIN CATCH
 	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
@@ -45,9 +47,62 @@ BEGIN CATCH
 END CATCH
 
 
--- ==========================================================
--- TESTING TipoParque
--- ==========================================================
+-- ===========================================================
+-- CASOS EXITOSOS - Parque
+-- ============================================================
+USE ParquesNacionales
+GO
+
+BEGIN TRANSACTION
+
+    DECLARE @idTipoParque_TEST INT,
+            @idParque_TEST     INT
+
+    -- Alta exitosa
+    EXEC Parques.sp_AltaTipoParque
+        @nombre = 'Parque Nacional', @descripcion = 'Jurisdiccion nacional'
+
+    SELECT @idTipoParque_TEST = idTipoParque
+    FROM Parques.TipoParque
+    WHERE nombre = 'Parque Nacional'
+
+    EXEC Parques.sp_AltaParque
+        @idTipoParque = @idTipoParque_TEST, @nombre = 'Parque Nacional Nahuel Huapi',
+        @region = '-', @provincia = 'Rio Negro', @superficie = 717.26
+
+    SELECT @idParque_TEST = idParque
+    FROM Parques.Parque
+    WHERE nombre = 'Parque Nacional Nahuel Huapi'
+
+    SELECT *
+    FROM Parques.Parque
+
+
+    -- Modificación exitosa
+    EXEC Parques.sp_ModificacionParque
+        @idParque = @idParque_TEST, @idTipoParque = @idTipoParque_TEST, @nombre = 'Parque Nacional Laguna Blanca',
+        @region = '', @provincia = 'Neuquen', @superficie = 11.25
+
+    SELECT *
+    FROM Parques.Parque
+
+
+    -- Baja exitosa
+    EXEC Parques.sp_BajaParque
+        @idParque = @idParque_TEST
+
+    SELECT *
+    FROM Parques.Parque
+
+    EXEC Parques.sp_BajaTipoParque
+        @idTipoParque = @idTipoParque_TEST
+
+ROLLBACK TRANSACTION
+
+
+-- ************************************************************
+-- CASOS DE ERROR - TipoParque
+-- ************************************************************
 -- idTipoParque no ingresado
 BEGIN TRY
 	EXEC Parques.sp_AltaTipoParque @nombre = '', @descripcion = ''
@@ -75,7 +130,248 @@ BEGIN CATCH
 END CATCH
 
 
+-- ===========================================================
+-- CASOS EXITOSOS - TipoParque
+-- ============================================================
+USE ParquesNacionales
+GO
 
+BEGIN TRANSACTION
+
+    DECLARE @idTipoParque_TEST INT
+
+    -- Alta exitosa
+    EXEC Parques.sp_AltaTipoParque
+        @nombre = 'Parque Nacional', @descripcion = 'Jurisdiccion nacional'
+
+    SELECT @idTipoParque_TEST = idTipoParque
+    FROM Parques.TipoParque
+    WHERE nombre = 'Parque Nacional'
+
+    SELECT *
+    FROM Parques.TipoParque
+
+    -- Modificación exitosa
+    EXEC Parques.sp_ModificacionTipoParque
+        @idTipoParque = @idTipoParque_TEST, @nombre = 'Reserva Natural', @descripcion = ''
+
+    SELECT *
+    FROM Parques.TipoParque
+
+
+    -- Baja exitosa
+    EXEC Parques.sp_BajaTipoParque
+        @idTipoParque = @idTipoParque_TEST
+
+    SELECT *
+    FROM Parques.TipoParque
+
+ROLLBACK TRANSACTION
+
+
+-- ************************************************************
+-- CASOS DE ERROR - Guardaparque
+-- ************************************************************
+USE ParquesNacionales
+GO
+
+-- nombre no ingresado, apellido no ingresado, fechaNacimiento no ingresada, fechaIngresoCargo no valida
+BEGIN TRY
+	EXEC Personal.sp_AltaGuardaparque @nombre = '', @apellido = '',
+        @fechaNacimiento = '', @tipoDocumento = '', @nroDocumento = 0,
+        @email = '', @fechaIngresoCargo = '2077-06-18'
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- idGuardaparque no existe, fechaEgresoCargo no valida
+BEGIN TRY
+	EXEC Personal.sp_ModificacionGuardaparque @idGuardaparque = 1, @nombre = '', @apellido = '',
+        @fechaNacimiento = '', @tipoDocumento = '', @nroDocumento = 0, @email = '',
+        @fechaIngresoCargo = '2017-06-18', @fechaEgresoCargo = '2016-05-15', @motivoEgreso = '', @estaActivo = 0
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- idGuardaparque no existe
+BEGIN TRY
+	EXEC Personal.sp_BajaGuardaparque @idGuardaparque = 1, @motivoEgreso = 'Despido'
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- ===========================================================
+-- CASOS EXITOSOS - Guardaparque
+-- ============================================================
+USE ParquesNacionales
+GO
+
+BEGIN TRANSACTION
+
+    DECLARE @idGuardaparque_TEST INT
+
+    -- Alta exitosa
+    EXEC Personal.sp_AltaGuardaparque
+        @nombre = 'Pedro', @apellido = 'Pedro', @fechaNacimiento = '2000-01-21', @tipoDocumento = 'DNI',
+        @nroDocumento = '46000000', @email = 'johnsmith@mail.com', @fechaIngresoCargo = '2026-06-12'
+
+    SELECT @idGuardaparque_TEST = idGuardaparque
+    FROM Personal.Guardaparque
+    WHERE tipoDocumento = 'DNI' AND nroDocumento = '46000000'
+
+    SELECT *
+    FROM Personal.Guardaparque
+
+    -- Modificación exitosa
+    EXEC Personal.sp_ModificacionGuardaparque
+        @idGuardaparque = @idGuardaparque_TEST, @nombre = 'John', @apellido = 'Doe', @fechaNacimiento = '1999-04-26',
+        @tipoDocumento = 'DNI', @nroDocumento = '46000000', @email = 'johnsmith@gmail.com', @fechaIngresoCargo = '2025-07-17',
+        @fechaEgresoCargo = NULL , @motivoEgreso = '', @estaActivo = 1
+
+    SELECT *
+    FROM Personal.Guardaparque
+
+
+    -- Baja exitosa
+    EXEC Personal.sp_BajaGuardaparque
+        @idGuardaparque = @idGuardaparque_TEST, @motivoEgreso = 'Despido'
+
+    SELECT *
+    FROM Personal.Guardaparque
+
+
+    -- Eliminacion exitosa
+    EXEC Personal.sp_EliminarGuardaparque
+        @idGuardaparque = @idGuardaparque_TEST
+
+    SELECT *
+    FROM Personal.Guardaparque
+
+ROLLBACK TRANSACTION
+
+
+-- ************************************************************
+-- CASOS DE ERROR - HistorialGuardaparque
+-- ************************************************************
+USE ParquesNacionales
+GO
+
+-- idParque no existe, idGuardaparque no existe
+BEGIN TRY
+	EXEC Personal.sp_AltaHistorialGuardaparque @idParque = 1, @idGuardaparque = 1,
+        @fechaIngreso = NULL, @fechaEgreso = NULL
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- idHistorial no existe, idParque no existe, idGuardaparque no existe, fechaEgreso no valida
+BEGIN TRY
+	EXEC Personal.sp_ModificacionHistorialGuardaparque @idHistorial = 1, @idParque = 1,
+    @idGuardaparque = 1, @fechaIngreso = '2026-06-20', @fechaEgreso = '2025-06-20'
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- idHistorial no existe
+BEGIN TRY
+	EXEC Personal.sp_BajaHistorialGuardaparque @idHistorial = 1
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- idHistorial no existe
+BEGIN TRY
+	EXEC Personal.sp_EliminarHistorialGuardaparque @idHistorial = 1
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR ESPERADO: ' + ERROR_MESSAGE()
+END CATCH
+
+
+-- ===========================================================
+-- CASOS EXITOSOS - HistorialGuardaparque
+-- ============================================================
+USE ParquesNacionales
+GO
+
+BEGIN TRANSACTION
+
+    DECLARE @idHistorial_TEST    INT,
+            @idTipoParque_TEST   INT,
+            @idParque_TEST       INT,
+            @idGuardaparque_TEST INT
+
+    -- Alta exitosa
+    EXEC Personal.sp_AltaGuardaparque
+        @nombre = 'Pedro', @apellido = 'Pedro', @fechaNacimiento = '2000-01-21', @tipoDocumento = 'DNI',
+        @nroDocumento = '46000000', @email = 'johnsmith@mail.com', @fechaIngresoCargo = '2026-06-12'
+
+    SELECT @idGuardaparque_TEST = idGuardaparque
+    FROM Personal.Guardaparque
+    WHERE tipoDocumento = 'DNI' AND nroDocumento = '46000000'
+
+    EXEC Parques.sp_AltaTipoParque
+        @nombre = 'Parque Nacional', @descripcion = 'Jurisdiccion nacional'
+
+    SELECT @idTipoParque_TEST = idTipoParque
+    FROM Parques.TipoParque
+    WHERE nombre = 'Parque Nacional'
+
+    EXEC Parques.sp_AltaParque
+        @idTipoParque = @idTipoParque_TEST, @nombre = 'Parque Nacional Nahuel Huapi',
+        @region = '-', @provincia = 'Rio Negro', @superficie = 717.26
+
+    SELECT @idParque_TEST = idParque
+    FROM Parques.Parque
+    WHERE nombre = 'Parque Nacional Nahuel Huapi'
+
+
+    EXEC Personal.sp_AltaHistorialGuardaparque
+        @idParque = @idParque_TEST, @idGuardaparque = @idGuardaparque_TEST, @fechaIngreso = '2025-08-23', @fechaEgreso = NULL
+
+    SELECT @idHistorial_TEST = idHistorial
+    FROM Personal.HistorialGuardaparque
+    WHERE idGuardaparque = @idGuardaparque_TEST AND idParque = @idParque_TEST
+
+    SELECT *
+    FROM Personal.HistorialGuardaparque
+
+    -- Modificación exitosa
+    EXEC Personal.sp_ModificacionHistorialGuardaparque @idHistorial = @idHistorial_TEST, @idParque = @idParque_TEST,
+        @idGuardaparque = @idGuardaparque_TEST, @fechaIngreso = '2026-06-10', @fechaEgreso = NULL
+
+    SELECT *
+    FROM Personal.HistorialGuardaparque
+
+
+    -- Baja exitosa
+    EXEC Personal.sp_BajaHistorialGuardaparque
+        @idHistorial = @idHistorial_TEST
+
+    SELECT *
+    FROM Personal.HistorialGuardaparque
+
+
+    -- Eliminacion exitosa
+    EXEC Personal.sp_EliminarHistorialGuardaparque
+        @idHistorial = @idHistorial_TEST
+
+    SELECT *
+    FROM Personal.HistorialGuardaparque
+
+ROLLBACK TRANSACTION
 
 
 -- ===========================================================
@@ -218,8 +514,8 @@ BEGIN TRANSACTION
 
     SET @idTipoParque = SCOPE_IDENTITY();
 
-    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
-    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000.00);
+    INSERT INTO Parques.Parque (idTipoParque, nombre, region, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Region', 'TEST_Provincia', 1000.00);
 
     SET @idParque = SCOPE_IDENTITY();
 
@@ -396,8 +692,8 @@ BEGIN TRANSACTION
 
     SET @idTipoParque = SCOPE_IDENTITY();
 
-    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
-    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+    INSERT INTO Parques.Parque (idTipoParque, nombre, region, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Region', 'TEST_Provincia', 1000);
 
     SET @idParque = SCOPE_IDENTITY();
 
@@ -511,8 +807,8 @@ BEGIN TRANSACTION;
 
     SET @idTipoParque = SCOPE_IDENTITY();
 
-    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
-    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+    INSERT INTO Parques.Parque (idTipoParque, nombre, region, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Region', 'TEST_Provincia', 1000);
 
     SET @idParque = SCOPE_IDENTITY();
 
@@ -619,8 +915,8 @@ BEGIN TRANSACTION
 
     SET @idTipoParque = SCOPE_IDENTITY();
 
-    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
-    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+    INSERT INTO Parques.Parque (idTipoParque, nombre, region, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Region', 'TEST_Provincia', 1000);
 
     SET @idParque = SCOPE_IDENTITY();
 
@@ -760,8 +1056,8 @@ BEGIN TRY
 
     SET @idTipoParque = SCOPE_IDENTITY();
 
-    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
-    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+    INSERT INTO Parques.Parque (idTipoParque, nombre, region, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Region', 'TEST_Provincia', 1000);
 
     SET @idParque = SCOPE_IDENTITY();
 
@@ -848,8 +1144,8 @@ BEGIN TRY
 
     SET @idTipoParque = SCOPE_IDENTITY();
 
-    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
-    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Localidad', 'TEST_Provincia', 1000);
+    INSERT INTO Parques.Parque (idTipoParque, nombre, region, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque', 'TEST_Region', 'TEST_Provincia', 1000);
 
     SET @idParque = SCOPE_IDENTITY();
 
@@ -1114,8 +1410,8 @@ BEGIN TRANSACTION
 
     SET @idTipoParque = SCOPE_IDENTITY();
 
-    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
-    VALUES (@idTipoParque,'TEST_Parque','TEST_Localidad','TEST_Provincia',1000);
+    INSERT INTO Parques.Parque (idTipoParque, nombre, region, provincia, superficie)
+    VALUES (@idTipoParque,'TEST_Parque','TEST_Region','TEST_Provincia',1000);
 
     SET @idParque = SCOPE_IDENTITY();
 
