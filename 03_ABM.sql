@@ -1228,19 +1228,15 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @errores VARCHAR(1000) = '';
 
-    -- Validación 1: Existencia del ID maestro
     IF NOT EXISTS (SELECT 1 FROM Concesiones.EmpresaConcesionaria WHERE idEmpresaConcesionaria = @idEmpresaConcesionaria)
         SET @errores += '- El ID de la empresa concesionaria especificado no existe.' + CHAR(10);
 
-    -- Validación 2: CUIT válido
     IF @cuit IS NULL OR LEN(LTRIM(RTRIM(@cuit))) <> 11
         SET @errores += '- El CUIT es obligatorio y debe poseer 11 caracteres.' + CHAR(10);
 
-    -- Validación 3: Evitar colisión de CUIT con OTRA empresa al modificar
     IF EXISTS (SELECT 1 FROM Concesiones.EmpresaConcesionaria WHERE cuit = @cuit AND idEmpresaConcesionaria <> @idEmpresaConcesionaria)
         SET @errores += '- El nuevo CUIT ingresado ya pertenece a otra empresa concesionaria.' + CHAR(10);
 
-    -- Validación 4: Razón Social válida
     IF @razonSocial IS NULL OR LTRIM(RTRIM(@razonSocial)) = ''
         SET @errores += '- La razón social es obligatoria.' + CHAR(10);
 
@@ -1268,7 +1264,6 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM Concesiones.EmpresaConcesionaria WHERE idEmpresaConcesionaria = @idEmpresaConcesionaria)
         SET @errores += '- El ID de la empresa a eliminar no existe.' + CHAR(10);
 
-    -- Validación crítica: No romper la integridad referencial (FK de contratos de Concesión)
     IF EXISTS (SELECT 1 FROM Concesiones.Concesion WHERE idEmpresaConcesionaria = @idEmpresaConcesionaria)
         SET @errores += '- Restricción de Integridad: No se puede eliminar la empresa porque posee contratos de concesión activos o históricos asignados.' + CHAR(10);
 
@@ -1282,5 +1277,93 @@ BEGIN
     WHERE idEmpresaConcesionaria = @idEmpresaConcesionaria;
     
     PRINT 'Empresa concesionaria eliminada correctamente.';
+END;
+GO
+
+-- ==========================================================
+-- TABLA TipoActividadConcesion
+-- ==========================================================
+
+CREATE OR ALTER PROCEDURE Concesiones.sp_AltaTipoActividadConcesion
+    @nombre               VARCHAR(100),
+    @descripcionActividad VARCHAR(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
+        SET @errores += '- El nombre de la actividad de concesión es obligatorio y no puede estar vacío.' + CHAR(10);
+
+    IF EXISTS (SELECT 1 FROM Concesiones.TipoActividadConcesion WHERE nombre = @nombre)
+        SET @errores += '- El tipo de actividad comercial ingresado ya existe en el sistema.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO Concesiones.TipoActividadConcesion (nombre, descripcionActividad)
+    VALUES (LTRIM(RTRIM(@nombre)), LTRIM(RTRIM(@descripcionActividad)));
+
+    SELECT SCOPE_IDENTITY() AS idTipoActividadConcesionNueva;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE Concesiones.sp_ModificacionTipoActividadConcesion
+    @idTipoActividadConcesion INT,
+    @nombre                   VARCHAR(100),
+    @descripcionActividad     VARCHAR(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Concesiones.TipoActividadConcesion WHERE idTipoActividadConcesion = @idTipoActividadConcesion)
+        SET @errores += '- El ID del tipo de actividad de concesión especificado no existe.' + CHAR(10);
+
+    IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
+        SET @errores += '- El nombre de la actividad es un campo obligatorio.' + CHAR(10);
+
+    IF EXISTS (SELECT 1 FROM Concesiones.TipoActividadConcesion WHERE nombre = @nombre AND idTipoActividadConcesion <> @idTipoActividadConcesion)
+        SET @errores += '- Ya existe otra actividad registrada con ese mismo nombre.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    UPDATE Concesiones.TipoActividadConcesion
+    SET nombre = LTRIM(RTRIM(@nombre)),
+        descripcionActividad = LTRIM(RTRIM(@descripcionActividad))
+    WHERE idTipoActividadConcesion = @idTipoActividadConcesion;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE Concesiones.sp_EliminarTipoActividadConcesion
+    @idTipoActividadConcesion INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Concesiones.TipoActividadConcesion WHERE idTipoActividadConcesion = @idTipoActividadConcesion)
+        SET @errores += '- El ID de la actividad a eliminar no existe.' + CHAR(10);
+
+    IF EXISTS (SELECT 1 FROM Concesiones.Concesion WHERE idTipoActividadConcesion = @idTipoActividadConcesion)
+        SET @errores += '- Restricción de Integridad: No se puede eliminar el rubro comercial debido a que posee contratos de concesión asociados.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM Concesiones.TipoActividadConcesion 
+    WHERE idTipoActividadConcesion = @idTipoActividadConcesion;
+    
+    PRINT 'Tipo de actividad de concesión eliminado correctamente.';
 END;
 GO

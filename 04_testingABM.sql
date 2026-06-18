@@ -1274,9 +1274,9 @@ GO
 USE ParquesNacionales;
 GO
 
--- '========================================================================';
--- 'TEST CASO EXITOSO: ALTA -> MODIFICACIÓN -> ELIMINACIÓN';
--- '========================================================================';
+-- '========================================================================'
+-- 'TEST CASO EXITOSO: ALTA -> MODIFICACIÓN -> ELIMINACIÓN'
+-- '========================================================================'
 
 BEGIN TRANSACTION; -- Inicio de zona segura de pruebas sin datos basura
 BEGIN TRY
@@ -1319,9 +1319,9 @@ ROLLBACK TRANSACTION; -- La base vuelve a su estado original e intacto
 GO
 
 
--- '========================================================================';
--- 'TEST CASO FALLIDO: SIMULACIÓN DE INFRACCIÓN A VALIDACIONES';
--- '========================================================================';
+-- '========================================================================'
+-- 'TEST CASO FALLIDO: SIMULACIÓN DE INFRACCIÓN A VALIDACIONES'
+-- '========================================================================'
 -- ESCENARIO ESPERADO: El SP debe interceptar los fallos y concatenar ambos
 -- en un mismo string (CUIT inválido menor a 11 caracteres y Razón Social vacía).
 
@@ -1331,6 +1331,68 @@ BEGIN TRY
         @cuit = '12345',    -- Fuerza error de longitud
         @razonSocial = ' ', -- Fuerza error de campo vacío
         @contacto = NULL;
+END TRY
+BEGIN CATCH
+    PRINT 'Mensaje consolidado capturado con éxito para el usuario final:';
+    SELECT value AS [Errores Atrapados]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+-- '========================================================================'
+-- 'TEST TIPO ACTIVIDAD CONCESION: CASO EXITOSO (CON ROLLBACK)
+-- '========================================================================'
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    DECLARE @idActividadTest INT;
+
+    -- 1. Probar Alta
+    EXEC Concesiones.sp_AltaTipoActividadConcesion
+        @nombre = 'TEST_Alquiler de Bicicletas',
+        @descripcionActividad = 'Servicio de renta de rodados de montaña y cascos para senderos autorizados.';
+
+    PRINT 'Evidencia post-alta:';
+    SELECT * FROM Concesiones.TipoActividadConcesion WHERE nombre = 'TEST_Alquiler de Bicicletas';
+
+    SELECT @idActividadTest = idTipoActividadConcesion FROM Concesiones.TipoActividadConcesion WHERE nombre = 'TEST_Alquiler de Bicicletas';
+
+    -- 2. Probar Modificación
+    EXEC Concesiones.sp_ModificacionTipoActividadConcesion
+        @idTipoActividadConcesion = @idActividadTest,
+        @nombre = 'TEST_Alquiler de Bicicletas y Mountain Bikes',
+        @descripcionActividad = 'Servicio premium de renta de rodados para circuitos de alta complejidad.';
+
+    PRINT 'Evidencia post-modificación:';
+    SELECT * FROM Concesiones.TipoActividadConcesion WHERE idTipoActividadConcesion = @idActividadTest;
+
+    -- 3. Probar Eliminación
+    EXEC Concesiones.sp_EliminarTipoActividadConcesion @idTipoActividadConcesion = @idActividadTest;
+
+    PRINT 'Evidencia post-eliminación (Debe retornar vacío):'; 
+    SELECT * FROM Concesiones.TipoActividadConcesion WHERE idTipoActividadConcesion = @idActividadTest; 
+
+END TRY
+BEGIN CATCH
+    PRINT 'Error inesperado durante la ejecución del test: ' + ERROR_MESSAGE();
+END CATCH;
+
+ROLLBACK TRANSACTION; 
+GO
+
+
+-- '========================================================================'
+-- 'TEST TIPO ACTIVIDAD CONCESION: CASO DE ERROR
+-- '========================================================================'
+-- ESCENARIO ESPERADO: Debe fallar concatenando el nombre vacío.
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    EXEC Concesiones.sp_AltaTipoActividadConcesion
+        @nombre = '   ', -- Fuerza el error de cadena vacía
+        @descripcionActividad = 'Prueba de falla acumulativa';
 END TRY
 BEGIN CATCH
     PRINT 'Mensaje consolidado capturado con éxito para el usuario final:';
