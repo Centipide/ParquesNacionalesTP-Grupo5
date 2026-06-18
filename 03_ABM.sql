@@ -1367,3 +1367,134 @@ BEGIN
     PRINT 'Tipo de actividad de concesión eliminado correctamente.';
 END;
 GO
+
+-- ==========================================================
+-- TABLA Concesion
+-- ==========================================================
+
+CREATE OR ALTER PROCEDURE Concesiones.sp_AltaConcesion
+    @idEmpresaConcesionaria   INT,
+    @idTipoActividadConcesion INT,
+    @idParque                 INT,
+    @fechaInicio              DATE,
+    @fechaFin                 DATE,
+    @montoAlquiler            DECIMAL(12,2),
+    @estado                   VARCHAR(20) = 'Activa'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+
+    IF NOT EXISTS (SELECT 1 FROM Concesiones.EmpresaConcesionaria WHERE idEmpresaConcesionaria = @idEmpresaConcesionaria)
+        SET @errores += '- El ID de la empresa concesionaria especificado no existe.' + CHAR(10);
+
+    IF NOT EXISTS (SELECT 1 FROM Concesiones.TipoActividadConcesion WHERE idTipoActividadConcesion = @idTipoActividadConcesion)
+        SET @errores += '- El ID del tipo de actividad de concesión especificado no existe.' + CHAR(10);
+
+    IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE idParque = @idParque)
+        SET @errores += '- El ID del parque especificado no existe.' + CHAR(10);
+
+
+    IF @fechaInicio IS NULL OR @fechaFin IS NULL
+        SET @errores += '- Las fechas de inicio y fin de contrato son obligatorias.' + CHAR(10);
+    ELSE IF @fechaFin <= @fechaInicio
+        SET @errores += '- La fecha de finalización del contrato debe ser estrictamente posterior a la fecha de inicio.' + CHAR(10);
+
+    IF @montoAlquiler IS NULL OR @montoAlquiler <= 0
+        SET @errores += '- El monto del alquiler/canon mensual debe ser una magnitud mayor a cero.' + CHAR(10);
+
+    IF @estado NOT IN ('Activa', 'Vencida', 'Cancelada')
+        SET @errores += '- El estado del contrato ingresado no es válido (Debe ser Activa, Vencida o Cancelada).' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO Concesiones.Concesion (idEmpresaConcesionaria, idTipoActividadConcesion, idParque, fechaInicio, fechaFin, montoAlquiler, estado)
+    VALUES (@idEmpresaConcesionaria, @idTipoActividadConcesion, @idParque, @fechaInicio, @fechaFin, @montoAlquiler, @estado);
+
+    SELECT SCOPE_IDENTITY() AS idConcesionNueva;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE Concesiones.sp_ModificacionConcesion
+    @idConcesion              INT,
+    @idEmpresaConcesionaria   INT,
+    @idTipoActividadConcesion INT,
+    @idParque                 INT,
+    @fechaInicio              DATE,
+    @fechaFin                 DATE,
+    @montoAlquiler            DECIMAL(12,2),
+    @estado                   VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Concesiones.Concesion WHERE idConcesion = @idConcesion)
+        SET @errores += '- El ID del contrato de concesión especificado no existe.' + CHAR(10);
+
+    IF NOT EXISTS (SELECT 1 FROM Concesiones.EmpresaConcesionaria WHERE idEmpresaConcesionaria = @idEmpresaConcesionaria)
+        SET @errores += '- El ID de la empresa concesionaria especificado no existe.' + CHAR(10);
+
+    IF NOT EXISTS (SELECT 1 FROM Concesiones.TipoActividadConcesion WHERE idTipoActividadConcesion = @idTipoActividadConcesion)
+        SET @errores += '- El ID del tipo de actividad de concesión especificado no existe.' + CHAR(10);
+
+    IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE idParque = @idParque)
+        SET @errores += '- El ID del parque especificado no existe.' + CHAR(10);
+
+    IF @fechaFin <= @fechaInicio
+        SET @errores += '- La fecha de finalización debe ser estrictamente posterior a la fecha de inicio.' + CHAR(10);
+
+    IF @montoAlquiler <= 0
+        SET @errores += '- El monto del alquiler debe ser una magnitud mayor a cero.' + CHAR(10);
+
+    IF @estado NOT IN ('Activa', 'Vencida', 'Cancelada')
+        SET @errores += '- El estado debe ser Activa, Vencida o Cancelada.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    UPDATE Concesiones.Concesion
+    SET idEmpresaConcesionaria = @idEmpresaConcesionaria,
+        idTipoActividadConcesion = @idTipoActividadConcesion,
+        idParque = @idParque,
+        fechaInicio = @fechaInicio,
+        fechaFin = @fechaFin,
+        montoAlquiler = @montoAlquiler,
+        estado = @estado
+    WHERE idConcesion = @idConcesion;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE Concesiones.sp_EliminarConcesion
+    @idConcesion INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @errores VARCHAR(1000) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Concesiones.Concesion WHERE idConcesion = @idConcesion)
+        SET @errores += '- El ID del contrato de concesión a eliminar no existe.' + CHAR(10);
+
+    IF EXISTS (SELECT 1 FROM Concesiones.PagoCanon WHERE idConcesion = @idConcesion)
+        SET @errores += '- Restricción de Integridad: No es posible eliminar el contrato de concesión porque posee registros de pagos históricos (PagoCanon) asociados.' + CHAR(10);
+
+    IF @errores <> ''
+    BEGIN
+        RAISERROR(@errores, 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM Concesiones.Concesion 
+    WHERE idConcesion = @idConcesion;
+    
+    PRINT 'Contrato de concesión eliminado de forma exitosa.';
+END;
+GO

@@ -1402,3 +1402,98 @@ BEGIN CATCH
 END CATCH;
 ROLLBACK TRANSACTION;
 GO
+
+-- '========================================================================'
+-- 'TEST CONCESION: CASO EXITOSO (CON ROLLBACK)'
+-- '========================================================================'
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    DECLARE @idEmpresa INT, @idActividad INT, @idParque INT, @idConcesionTest INT;
+    DECLARE @idTipoParque INT;
+
+    -- Generar datos de soporte necesarios para cumplir las FKs
+    INSERT INTO Parques.TipoParque (nombre, descripcion) VALUES ('TEST_Reserva', 'Reserva de pruebas');
+    SET @idTipoParque = SCOPE_IDENTITY();
+
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie)
+    VALUES (@idTipoParque, 'TEST_Parque Meteorito', 'Localidad Test', 'Provincia Test', 5500.50);
+    SET @idParque = SCOPE_IDENTITY();
+
+    INSERT INTO Concesiones.EmpresaConcesionaria (cuit, razonSocial, contacto)
+    VALUES ('30111111118', 'TEST_Gastronomía Patagónica S.A.', 'ventas@test.com');
+    SET @idEmpresa = SCOPE_IDENTITY();
+
+    INSERT INTO Concesiones.TipoActividadConcesion (nombre, descripcionActividad)
+    VALUES ('TEST_Restaurante', 'Servicios de buffet y cafetería.');
+    SET @idActividad = SCOPE_IDENTITY();
+
+    -- 1. Probar Alta
+    EXEC Concesiones.sp_AltaConcesion
+        @idEmpresaConcesionaria = @idEmpresa,
+        @idTipoActividadConcesion = @idActividad,
+        @idParque = @idParque,
+        @fechaInicio = '2026-01-01',
+        @fechaFin = '2026-12-31',
+        @montoAlquiler = 120000.00,
+        @estado = 'Activa';
+
+    PRINT 'Evidencia post-alta:';
+    SELECT * FROM Concesiones.Concesion WHERE idEmpresaConcesionaria = @idEmpresa;
+
+    SELECT @idConcesionTest = idConcesion FROM Concesiones.Concesion WHERE idEmpresaConcesionaria = @idEmpresa;
+
+    -- 2. Probar Modificación
+    EXEC Concesiones.sp_ModificacionConcesion
+        @idConcesion = @idConcesionTest,
+        @idEmpresaConcesionaria = @idEmpresa,
+        @idTipoActividadConcesion = @idActividad,
+        @idParque = @idParque,
+        @fechaInicio = '2026-01-01',
+        @fechaFin = '2027-06-30', -- Extensión del contrato
+        @montoAlquiler = 150000.00, -- Aumento de canon
+        @estado = 'Activa';
+
+    PRINT 'Evidencia post-modificación:';
+    SELECT * FROM Concesiones.Concesion WHERE idConcesion = @idConcesionTest;
+
+    -- 3. Probar Eliminación
+    EXEC Concesiones.sp_EliminarConcesion @idConcesion = @idConcesionTest;
+
+    PRINT 'Evidencia post-eliminación (Debe retornar vacío):';
+    SELECT * FROM Concesiones.Concesion WHERE idConcesion = @idConcesionTest;
+
+END TRY
+BEGIN CATCH
+    PRINT 'Error detectado en flujo de concesiones: ' + ERROR_MESSAGE();
+END CATCH;
+
+ROLLBACK TRANSACTION; -- Limpieza de los datos de soporte
+GO
+
+
+-- '========================================================================'
+-- 'TEST CONCESION: CASO DE ERROR (VALIDACIONES ACUMULATIVAS)'
+-- '========================================================================'
+-- ESCENARIO ESPERADO: Debe fallar concatenando tres infracciones claras:
+-- (FKs inexistentes, fechas cruzadas al revés y monto negativo).
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    EXEC Concesiones.sp_AltaConcesion
+        @idEmpresaConcesionaria = -1,  -- Inexistente
+        @idTipoActividadConcesion = -1, -- Inexistente
+        @idParque = -1,                 -- Inexistente
+        @fechaInicio = '2026-12-31',
+        @fechaFin = '2026-01-01',       -- Error: Fin menor que inicio
+        @montoAlquiler = -5000.00,      -- Error: Monto negativo
+        @estado = 'Invalido';           -- Error: Estado fuera del CHECK
+END TRY
+BEGIN CATCH
+    PRINT 'Mensaje consolidado capturado con éxito para el usuario final:';
+    SELECT value AS [Errores Atrapados]
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
