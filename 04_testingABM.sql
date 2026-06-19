@@ -1935,9 +1935,7 @@ BEGIN TRY
     EXEC Ventas.sp_AltaEntrada
         @idParque = @idParque,
         @idTipoVisitante = @idTipoVisitante,
-        @precio = 2500.00,
-        @fechaAcceso = '2026-06-18',
-        @parqueVisitado = 'Parque Costero Real';
+        @precio = 2500.00;
 
     PRINT 'Evidencia post-alta Entrada:';
     SELECT * FROM Ventas.Entrada WHERE idParque = @idParque;
@@ -1949,9 +1947,7 @@ BEGIN TRY
         @idEntrada = @idEntradaTest,
         @idParque = @idParque,
         @idTipoVisitante = @idTipoVisitante,
-        @precio = 3200.00,
-        @fechaAcceso = '2026-06-18',
-        @parqueVisitado = 'Parque Costero Modificado';
+        @precio = 3200.00;
 
     PRINT 'Evidencia post-modificación Entrada:';
     SELECT * FROM Ventas.Entrada WHERE idEntrada = @idEntradaTest;
@@ -1968,13 +1964,13 @@ GO
 -- TEST ENTRADA: CASOS DE ERROR CONTROLADOS
 -- ************************************************************************
 
--- Prueba A: Claves inexistentes, monto nulo y negativo de forma acumulada
+-- Prueba A: Claves inexistentes, precio nulo y negativo de forma acumulada
 BEGIN TRANSACTION;
 BEGIN TRY
     EXEC Ventas.sp_AltaEntrada
         @idParque = -1,
         @idTipoVisitante = -1,
-        @monto = -450.00;
+        @precio = -450.00;
 END TRY
 BEGIN CATCH
     SELECT value AS [Errores Atrapados (Datos Inválidos)]
@@ -1984,29 +1980,17 @@ END CATCH;
 -- Prueba B: Violación de índice de unicidad compuesta
 BEGIN TRY
     DECLARE @idPK INT, @idTV INT;
+    INSERT INTO Parques.TipoParque (nombre) VALUES ('T1');
+    INSERT INTO Parques.Parque (idTipoParque, nombre, localidad, provincia, superficie) VALUES (SCOPE_IDENTITY(), 'P1', 'L', 'P', 10);
+    SET @idPK = SCOPE_IDENTITY();
+    INSERT INTO Ventas.TipoVisitante (nombre) VALUES ('V1');
+    SET @idTV = SCOPE_IDENTITY();
 
-    -- Usamos tus SPs oficiales para generar las semillas con sus datos obligatorios
-    EXEC Parques.sp_AltaTipoParque @nombre = 'TEST_T1', @descripcion = 'Test Unicidad';
-    
-    -- Capturamos el ID del parque usando tu SP base
-    EXEC Parques.sp_AltaParque 
-        @idTipoParque = 1, 
-        @nombre = 'Parque Test Unicidad Compuesta', 
-        @localidad = 'Localidad Test', 
-        @provincia = 'Provincia Test', 
-        @superficie = 500.00;
-        
-    SELECT @idPK = MAX(idParque) FROM Parques.Parque WHERE nombre = 'Parque Test Unicidad Compuesta';
+    -- Insertamos el primer registro tarifario base
+    EXEC Ventas.sp_AltaEntrada @idParque = @idPK, @idTipoVisitante = @idTV, @precio = 1000.00;
 
-    -- Generamos la categoría de visitante con el SP oficial
-    EXEC Ventas.sp_AltaTipoVisitante @nombre = 'TEST_V1', @descripcion = 'Test Unicidad';
-    SELECT @idTV = MAX(idTipoVisitante) FROM Ventas.TipoVisitante WHERE nombre = 'TEST_V1';
-
-    -- 1. Insertamos el primer registro tarifario real
-    EXEC Ventas.sp_AltaEntrada @idParque = @idPK, @idTipoVisitante = @idTV, @monto = 1000.00;
-
-    -- 2. Forzamos el alta de la MISMA combinación
-    EXEC Ventas.sp_AltaEntrada @idParque = @idPK, @idTipoVisitante = @idTV, @monto = 1500.00;
+    -- Forzamos el alta del mismo par por SP (Debe fallar por tu IF EXISTS original)
+    EXEC Ventas.sp_AltaEntrada @idParque = @idPK, @idTipoVisitante = @idTV, @precio = 1500.00;
 END TRY
 BEGIN CATCH
     SELECT value AS [Errores Atrapados (Combinación Duplicada)]
@@ -2117,8 +2101,8 @@ BEGIN TRY
     INSERT INTO Ventas.TipoVisitante (nombre) VALUES ('TEST_Turista');
     SET @idCat = SCOPE_IDENTITY();
 
-    INSERT INTO Ventas.Entrada (idParque, idTipoVisitante, precio, fechaAcceso, parqueVisitado) 
-    VALUES (@idPark, @idCat, 2000.00, '2026-06-18', 'Parque Detalle');
+    INSERT INTO Ventas.Entrada (idParque, idTipoVisitante, precio) 
+    VALUES (@idPark, @idCat, 2000.00);
     SET @idTarifa = SCOPE_IDENTITY();
 
     INSERT INTO Ventas.Visitante (nombre, apellido) VALUES ('TEST_Comprador', 'Detalle');
@@ -2133,7 +2117,8 @@ BEGIN TRY
         @idVenta = @idTicket,
         @idEntrada = @idTarifa,
         @cantidad = 2,
-        @precioUnitario = 2000.00; -- Entrada individual a $2000
+        @precioUnitario = 2000.00,
+        @fechaAcceso = '2026-06-18'; -- Pasaporte para el día planificado
 
     PRINT 'Evidencia post-alta Detalle Venta:';
     SELECT * FROM Ventas.DetalleVenta WHERE idVenta = @idTicket;
@@ -2146,7 +2131,8 @@ BEGIN TRY
         @idVenta = @idTicket,
         @idEntrada = @idTarifa,
         @cantidad = 3,
-        @precioUnitario = 2000.00;
+        @precioUnitario = 2000.00,
+        @fechaAcceso = '2026-06-19'; -- Cambio de planes en la fecha de visita
 
     PRINT 'Evidencia post-modificación Detalle Venta:';
     SELECT * FROM Ventas.DetalleVenta WHERE idDetalleVenta = @idDetalleTest;
@@ -2162,15 +2148,16 @@ GO
 -- CASOS DE ERROR CONTROLADOS
 -- ************************************************************************
 
--- Prueba A: IDs de cabecera y catálogo falsos, cantidad cero y subtotal negativo
+-- Prueba A: IDs de cabecera y catálogo falsos, cantidad cero, subtotal negativo y fecha nula
 BEGIN TRANSACTION;
 BEGIN TRY
-    -- Mandamos parámetros incorrectos para ver la grilla de errores consolidada
+    -- Mandamos parámetros incorrectos para ver la grilla de errores consolidada (sumando la fecha nula)
     EXEC Ventas.sp_AltaDetalleVenta
         @idVenta = -1,
         @idEntrada = -1,
         @cantidad = 0,
-        @precioUnitario = -100.00;
+        @precioUnitario = -100.00,
+        @fechaAcceso = NULL; -- Violación de dato mandatorio
 END TRY
 BEGIN CATCH
     SELECT value AS [Errores Atrapados (Detalle Inválido)]
@@ -2184,7 +2171,8 @@ BEGIN TRY
         @idVenta = 1,
         @idEntrada = 1,
         @cantidad = NULL,
-        @precioUnitario = NULL;
+        @precioUnitario = NULL,
+        @fechaAcceso = NULL; -- Violación de dato mandatorio en UPDATE
 END TRY
 BEGIN CATCH
     SELECT value AS [Errores Atrapados (Modificación Inexistente)]

@@ -1790,9 +1790,7 @@ GO
 CREATE OR ALTER PROCEDURE Ventas.sp_AltaEntrada
     @idParque        INT,
     @idTipoVisitante INT,
-    @precio          DECIMAL(10,2),
-    @fechaAcceso     DATE = NULL,          -- Parámetro de mitigación NOT NULL
-    @parqueVisitado  VARCHAR(150) = NULL   -- Parámetro de mitigación NOT NULL
+    @precio          DECIMAL(10,2)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1816,14 +1814,8 @@ BEGIN
         RETURN;
     END
 
-    INSERT INTO Ventas.Entrada (idParque, idTipoVisitante, precio, fechaAcceso, parqueVisitado)
-    VALUES (
-        @idParque, 
-        @idTipoVisitante, 
-        @precio, 
-        COALESCE(@fechaAcceso, CAST(GETDATE() AS DATE)), 
-        COALESCE(@parqueVisitado, 'Carga Catálogo Automática')
-    );
+    INSERT INTO Ventas.Entrada (idParque, idTipoVisitante, precio)
+    VALUES (@idParque, @idTipoVisitante, @precio);
 
     SELECT SCOPE_IDENTITY() AS idEntradaNueva;
 END;
@@ -1833,9 +1825,7 @@ CREATE OR ALTER PROCEDURE Ventas.sp_ModificacionEntrada
     @idEntrada       INT,
     @idParque        INT,
     @idTipoVisitante INT,
-    @precio          DECIMAL(10,2),
-    @fechaAcceso     DATE = NULL,
-    @parqueVisitado  VARCHAR(150) = NULL
+    @precio          DECIMAL(10,2)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1865,9 +1855,7 @@ BEGIN
     UPDATE Ventas.Entrada
     SET idParque = @idParque,
         idTipoVisitante = @idTipoVisitante,
-        precio = @precio,
-        fechaAcceso = COALESCE(@fechaAcceso, fechaAcceso, CAST(GETDATE() AS DATE)),
-        parqueVisitado = COALESCE(@parqueVisitado, parqueVisitado, 'Modificación Catálogo Automática')
+        precio = @precio
     WHERE idEntrada = @idEntrada;
 END;
 GO
@@ -2012,7 +2000,8 @@ CREATE OR ALTER PROCEDURE Ventas.sp_AltaDetalleVenta
     @idVenta         INT,
     @idEntrada       INT,
     @cantidad        INT,
-    @precioUnitario  DECIMAL(12,2)
+    @precioUnitario  DECIMAL(12,2),
+    @fechaAcceso     DATE
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -2030,14 +2019,17 @@ BEGIN
     IF @precioUnitario IS NULL OR @precioUnitario < 0
         SET @errores += '- El precio unitario del renglón no puede tomar valores negativos.' + CHAR(10);
 
+    IF @fechaAcceso IS NULL
+        SET @errores += '- La fecha planificada de acceso al parque es un dato obligatorio.' + CHAR(10);
+
     IF @errores <> ''
     BEGIN
         RAISERROR(@errores, 16, 1);
         RETURN;
     END
 
-    INSERT INTO Ventas.DetalleVenta (idVenta, idEntrada, cantidad, precio)
-    VALUES (@idVenta, @idEntrada, @cantidad, @precioUnitario);
+    INSERT INTO Ventas.DetalleVenta (idVenta, idEntrada, cantidad, precio, fechaAcceso)
+    VALUES (@idVenta, @idEntrada, @cantidad, @precioUnitario, @fechaAcceso);
 
     SELECT SCOPE_IDENTITY() AS idDetalleVentaNuevo;
 END;
@@ -2048,7 +2040,8 @@ CREATE OR ALTER PROCEDURE Ventas.sp_ModificacionDetalleVenta
     @idVenta        INT,
     @idEntrada      INT,
     @cantidad       INT,
-    @precioUnitario  DECIMAL(12,2)
+    @precioUnitario  DECIMAL(12,2),
+    @fechaAcceso     DATE
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -2058,7 +2051,7 @@ BEGIN
         SET @errores += '- El ID del renglón de detalle especificado no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Ventas.Venta WHERE idVenta = @idVenta)
-        SET @errores += '- El ID del ticket de venta especificado no existe.' + CHAR(10);
+        SET @errores += '- El ID del ticket de venta Bird especificado no existe.' + CHAR(10);
 
     IF NOT EXISTS (SELECT 1 FROM Ventas.Entrada WHERE idEntrada = @idEntrada)
         SET @errores += '- El ID de la tarifa especificada no existe.' + CHAR(10);
@@ -2068,6 +2061,9 @@ BEGIN
 
     IF @precioUnitario IS NULL OR @precioUnitario < 0
         SET @errores += '- El precio unitario modificado no puede ser nulo ni negativo.' + CHAR(10);
+
+    IF @fechaAcceso IS NULL
+        SET @errores += '- La fecha modificada de acceso al parque no puede ser nula.' + CHAR(10);
 
     IF @errores <> ''
     BEGIN
@@ -2079,7 +2075,8 @@ BEGIN
     SET idVenta = @idVenta,
         idEntrada = @idEntrada,
         cantidad = @cantidad,
-        precio = @precioUnitario
+        precio = @precioUnitario,
+        fechaAcceso = @fechaAcceso
     WHERE idDetalleVenta = @idDetalleVenta;
 END;
 GO

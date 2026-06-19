@@ -320,8 +320,6 @@ CREATE TABLE Ventas.Entrada (
     idEntrada       INT           IDENTITY(1,1),
     idParque        INT           NOT NULL,
     idTipoVisitante INT           NOT NULL,
-    fechaAcceso     DATE          NOT NULL,
-    parqueVisitado  VARCHAR(150)  NOT NULL,
     precio          DECIMAL(10,2) NOT NULL,
 
     CONSTRAINT PK_Entrada PRIMARY KEY (idEntrada),
@@ -329,7 +327,9 @@ CREATE TABLE Ventas.Entrada (
         REFERENCES Parques.Parque (idParque),
     CONSTRAINT FK_Entrada_TipoVisitante FOREIGN KEY (idTipoVisitante)
         REFERENCES Ventas.TipoVisitante (idTipoVisitante),
-    CONSTRAINT CK_Entrada_Precio CHECK (precio >= 0)
+    CONSTRAINT CK_Entrada_Precio CHECK (precio >= 0),
+    
+    CONSTRAINT UQ_Entrada_Parque_TipoVisitante UNIQUE (idParque, idTipoVisitante)
 );
 GO
 
@@ -339,6 +339,7 @@ CREATE TABLE Ventas.DetalleVenta (
     idEntrada      INT           NOT NULL,
     cantidad       INT           NOT NULL,
     precio         DECIMAL(10,2) NOT NULL,
+    fechaAcceso    DATE          NOT NULL,
     total          AS (cantidad * precio) PERSISTED,
 
     CONSTRAINT PK_DetalleVenta PRIMARY KEY (idDetalleVenta),
