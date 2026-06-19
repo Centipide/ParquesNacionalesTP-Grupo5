@@ -2935,7 +2935,7 @@ BEGIN TRY
     INSERT INTO Guias.Titulo (nombre, fechaEmision)
     VALUES ('Tecnico Superior en Trekking','2018-06-15');
 
-    EXEC Guias.sp_AltaGuia
+    EXEC Guias.sp_AltaTitulo
         @nombre='Tecnico Superior en Trekking',
         @fechaEmision='2018-06-15';
 END TRY
@@ -2954,6 +2954,7 @@ GO
 BEGIN TRANSACTION
 BEGIN TRY
         EXEC Guias.sp_ModificacionTitulo 
+        @idTitulo = -5,
         @nombre = '', 
         @fechaEmision = 'NULL';
 END TRY
