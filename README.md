@@ -1,7 +1,7 @@
 # TP BBDDA Parques Nacionales
 
 ## Integrantes del grupo:
-    Ayala Bustos, Gustavo Gabriel
-    Bonfigli, Leonardo
-    Casale Benavente, Pedro Santino
-    Martinez Souto, Joaquin
+    Ayala Bustos, Gustavo Gabriel (TejonCosmico)
+    Bonfigli, Leonardo (lb-leoo02)
+    Casale Benavente, Pedro Santino (Centipide)
+    Martinez Souto, Joaquin (NeonCUCHAU)
