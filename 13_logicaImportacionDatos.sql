@@ -144,7 +144,7 @@ BEGIN
     WHILE @@FETCH_STATUS = 0
     BEGIN   SET @errFila = ''
 
-    IF ISDATE(@
+    IF ISDATE(@indiceTiempo) = 0
         SET @errFila += 'indiceTiempo invalido ("' + @indiceTiempo + '"). '
     
     IF @origen NOT IN ('residentes', 'no residentes', 'total')
@@ -270,7 +270,6 @@ BEGIN
             @fechaNac     DATE,
             @email        VARCHAR(150),
             @vigAut       DATE,
-            @estaAct      BIT,
             @emailDin     VARCHAR(150)
 
     DECLARE cur CURSOR LOCAL FAST_FORWARD FOR
@@ -327,13 +326,13 @@ BEGIN
         AND nroDocumento = @numeroDoc
     )
         BEGIN
-            SELECT @idGuia = idGuia, @fechaNac = fechaNacimiento, @email = email, @vigAut = vigenciaAutorizacion, @estaAct = estaActivo
+            SELECT @idGuia = idGuia, @fechaNac = fechaNacimiento, @email = email, @vigAut = vigenciaAutorizacion
             FROM Guias.Guia
             WHERE tipoDocumento = @tipoDoc
             AND nroDocumento = @numeroDoc
 
             EXEC Guias.sp_ModificacionGuia
-                @idGuia, @nombre, @apellido, @fechaNac, @tipoDoc, @numeroDoc, @email, @vigAut, @estaAct
+                @idGuia, @nombre, @apellido, @fechaNac, @tipoDoc, @numeroDoc, @email, @vigAut
         END
 
     ELSE
@@ -341,7 +340,7 @@ BEGIN
             SET @emailDin = CONCAT(TRIM(@nombre), TRIM(@numeroDoc), '@gmail.com')
 
             EXEC Guias.sp_AltaGuia
-                @nombre, @apellido, '2000-01-01', @tipoDoc, @numeroDoc, @emailDin, '2030-01-01', 1
+                @nombre, @apellido, '2000-01-01', @tipoDoc, @numeroDoc, @emailDin, '2030-01-01'
         END
     
     SET @okCont += 1
