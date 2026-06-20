@@ -14,7 +14,7 @@
 -- ============================================================
 -- IMPORTACION Parques
 -- https://ri.conicet.gov.ar/handle/11336/284755?show=full
--- FORMATO: .txt
+-- FORMATO: .txt (Pero con formato .json)
 -- RUTA: C:\Datasets\af_ha007__rea_protegida_argentina_geojson.txt
 -- ============================================================
 USE ParquesNacionales
@@ -35,7 +35,7 @@ BEGIN
         tipo       VARCHAR(100),
         nivelGobi  VARCHAR(100),
         gestion    VARCHAR(100),
-        creacion   INT,
+        creacion   VARCHAR(10),
         legal      VARCHAR(255),
         ecoregion  VARCHAR(100)
     )
@@ -45,7 +45,7 @@ BEGIN
         SELECT idArea, nombre, superficie, pais,
                 subnaciona, tipo, nivelGobi, gestion, creacion, legal, ecoregion
         FROM OPENROWSET(
-            BULK 'C:\Datasets\af_ha007__rea_protegida_argentina_geojson.txt', SINGLE_CLOB) AS archJson
+            BULK 'C:\Datasets\af_ha007__rea_protegida_argentina_geojson_TEST.txt', SINGLE_CLOB) AS archJson
         CROSS APPLY OPENJSON(archJson.BulkColumn, '$.features')
         WITH (
             idArea     INT           '$.properties.ID',
@@ -56,7 +56,7 @@ BEGIN
             tipo       VARCHAR(100)  '$.properties.TIPO',
             nivelGobi  VARCHAR(100)  '$.properties.NIVEL_GOBI',
             gestion    VARCHAR(100)  '$.properties.GESTION',
-            creacion   INT           '$.properties.CREACION',
+            creacion   VARCHAR(10)   '$.properties.CREACION',
             legal      VARCHAR(255)  '$.properties.LEGAL',
             ecoregion  VARCHAR(100)  '$.properties.ECOREGION'
         )
@@ -78,14 +78,16 @@ BEGIN
             @tipo       VARCHAR(100),
             @nivelGobi  VARCHAR(100),
             @gestion    VARCHAR(100),
-            @creacion   INT,
+            @creacion   VARCHAR(10),
             @legal      VARCHAR(255),
             @ecoregion  VARCHAR(100),
             @errFila    NVARCHAR(500),
             @okCont     INT = 0,
             @errCont    INT = 0,
-            @addCont    INT = 0,
-            @modCont    INT = 0,
+            @addTParCont INT = 0,
+            @modTParCont INT = 0,
+            @addParCont  INT = 0,
+            @modParCont  INT = 0,
             @errTxt     NVARCHAR(MAX) = '',
             @idTipoParque INT
 
@@ -112,36 +114,45 @@ BEGIN
     WHILE @@FETCH_STATUS = 0
         BEGIN   SET @errFila = ''
 
-        IF @nombre IS NULL
-            SET @errFila += 'nombre vacio ("' + @idArea + '"). '
+        IF @idArea IS NULL
+            SET @errFila += 'idArea no existe'
+
+        IF @nombre IS NULL OR @nombre = ''
+            SET @errFila += 'nombre vacio. '
 
         IF @superficie <= 0
-            SET @errFila += 'superficie no valida ("' + @superficie + '"). '
+            SET @errFila += 'superficie no valida. '
 
-        IF @pais IS NULL
-            SET @errFila += 'pais vacio ("' + @idArea + '"). '
+        IF @pais IS NULL OR @pais = ''
+            SET @errFila += 'pais vacio. '
 
-        IF @tipo IS NULL
-            SET @errFila += 'tipo vacio ("' + @idArea + '"). '
+        IF @subnaciona IS NULL OR @subnaciona = ''
+            SET @errFila += 'provincia vacia. '
+
+        IF @tipo IS NULL OR @tipo = ''
+            SET @errFila += 'tipo vacio. '
 
         IF @nivelGobi NOT IN ('PRIMER ORDEN', 'SEGUNDO ORDEN', 'TERCER ORDEN', 'INTERNACIONAL')
-            SET @errFila += 'nivelGobi no valido ("' + @nivelGobi + '"). '
+            SET @errFila += 'nivelGobi no valido. '
 
-        IF @gestion IS NULL
-            SET @errFila += 'gestion vacia ("' + @idArea + '"). '
+        IF @gestion IS NULL OR @gestion = ''
+            SET @errFila += 'gestion vacia. '
         
-        IF @creacion <= 0
-            SET @errFila += 'creacion no valida ("' + @creacion + '"). '
+        IF @creacion NOT LIKE '[0-9][0-9][0-9][0-9]'
+            SET @errFila += 'creacion no valida. '
 
-        IF @legal IS NULL
-            SET @errFila += 'legal vacio ("' + @idArea + '"). '
+        IF @legal IS NULL OR @legal = ''
+            SET @errFila += 'legal vacio. '
 
-        IF @ecoregion IS NULL
-            SET @errFila += 'ecoregion vacia ("' + @idArea + '"). '
+        IF @ecoregion IS NULL OR @ecoregion = ''
+            SET @errFila += 'ecoregion vacia. '
 
         IF @errFila <> ''
             BEGIN
-                SET @errTxt = @errTxt + CHAR(10) + N' [' + CAST(@idArea AS NVARCHAR(10)) + N']: ' + @errFila
+                SET @errTxt += CHAR(10) +
+                CONCAT(' [', @idArea, ' | ', @nombre, ' | ', @superficie, ' | ', @pais,
+                       ' | ',@subnaciona, ' | ', @tipo, ' | ', @nivelGobi, ' | ', @gestion,
+                       ' | ', @creacion, ' | ', @legal, ' | ', @ecoregion,']: ', @errFila)
                 SET @errCont += 1
             END
         ELSE
@@ -157,7 +168,7 @@ BEGIN
                 FROM Parques.TipoParque
                 WHERE nombre = @tipo
 
-                SET @modCont += 1
+                SET @modTParCont += 1
             END
 
         ELSE
@@ -169,7 +180,7 @@ BEGIN
                 FROM Parques.TipoParque
                 WHERE nombre = @tipo
 
-                SET @addCont += 1
+                SET @addTParCont += 1
             END
         
     -- UPSERT Parque
@@ -185,7 +196,7 @@ BEGIN
                 EXEC Parques.sp_ModificacionParque
                     @idArea, @idTipoParque, @nombre, @ecoregion, @subnaciona, @superficie
 
-                SET @modCont += 1
+                SET @modParCont += 1
             END
 
         ELSE
@@ -193,7 +204,7 @@ BEGIN
                 EXEC Parques.sp_AltaParque
                     @idTipoParque, @nombre, @ecoregion, @subnaciona, @superficie
                 
-                SET @addCont += 1
+                SET @addParCont += 1
             END
         
         SET @okCont += 1
@@ -213,8 +224,10 @@ BEGIN
         --@rutaArchivo AS archivo,
         @okCont  AS filasImportadas,
         @errCont AS filasConError,
-        @addCont AS filasAgregadas,
-        @modCont AS filasModificadas
+        @addTParCont AS tipoParqueAgregados,
+        @modTParCont AS tipoParqueModificados,
+        @addParCont AS parquesAgregados,
+        @modParCont AS parquesModificados
 
     IF @errCont > 0
         PRINT 'Errores encontrados: ' + @errTxt
@@ -255,7 +268,7 @@ BEGIN
     )
 
     BULK INSERT #Visitas
-    FROM 'C:\Datasets\visitas-residentes-y-no-residentes.csv'
+    FROM 'C:\Datasets\visitas-residentes-y-no-residentes_TEST.csv'
     WITH (
         FIRSTROW = 2,
         FIELDTERMINATOR = ',',
@@ -280,6 +293,8 @@ BEGIN
             @errFila       NVARCHAR(500),
             @okCont        INT = 0,
             @errCont       INT = 0,
+            @addCont       INT = 0,
+            @modCont       INT = 0,
             @errTxt        NVARCHAR(MAX) = ''
 
     DECLARE cur CURSOR LOCAL FAST_FORWARD FOR
@@ -297,19 +312,19 @@ BEGIN
         BEGIN   SET @errFila = ''
 
         IF ISDATE(@indiceTiempo) = 0
-            SET @errFila += 'indiceTiempo invalido ("' + @indiceTiempo + '"). '
+            SET @errFila += 'indiceTiempo invalido. '
         
-        IF @origen NOT IN ('residentes', 'no residentes', 'total')
-            SET @errFila += 'origen invalido ("' + @origen + '"). '
+        IF @origen NOT IN ('residentes', 'no residentes', 'total') or @origen IS NULL
+            SET @errFila += 'origen invalido. '
         
         SET @visitasInt = TRY_CAST(@visitasStr AS INT)
-        IF @visitasStr <> '' AND @visitasInt IS NULL
-            SET @errFila += 'visitas no contiene valor ("' + @visitasStr + '"). '
+        IF @visitasStr <> '' AND (@visitasInt IS NULL OR @visitasInt < 0)
+            SET @errFila += 'visitas no validas. '
 
         IF @errFila <> ''
         BEGIN
             SET @errTxt += CHAR(10) +
-                ' [' + @indiceTiempo + ' | ' + @origen + ']: ' + @errFila
+                CONCAT(' [', @indiceTiempo, ' | ', @origen, ' | ', @visitasStr, ' | ', @observaciones, ']: ', @errFila)
             SET @errCont += 1
             GOTO SigFila
         END
@@ -319,17 +334,25 @@ BEGIN
             WHERE indiceTiempo = @indiceTiempo
             AND origenVisitantes = @origen
         )
-            UPDATE Importacion.VisitasParquesNacionales
-            SET visitas = @visitasInt,
-                observaciones = @observaciones
-            WHERE indiceTiempo = @indiceTiempo
-                AND origenVisitantes = @origen
+            BEGIN
+                UPDATE Importacion.VisitasParquesNacionales
+                SET visitas = @visitasInt,
+                    observaciones = @observaciones
+                WHERE indiceTiempo = @indiceTiempo
+                    AND origenVisitantes = @origen
+
+                SET @modCont += 1
+            END
 
         ELSE
-            INSERT INTO Importacion.VisitasParquesNacionales
-                (indiceTiempo, origenVisitantes, visitas, observaciones)
-            VALUES
-                (@indiceTiempo, @origen, @visitasInt, @observaciones)
+            BEGIN
+                INSERT INTO Importacion.VisitasParquesNacionales
+                    (indiceTiempo, origenVisitantes, visitas, observaciones)
+                VALUES
+                    (@indiceTiempo, @origen, @visitasInt, @observaciones)
+
+                SET @addCont += 1
+            END
         
         SET @okCont += 1
 
@@ -341,8 +364,10 @@ BEGIN
     DEALLOCATE cur
             
     SELECT
-        @okCont AS filasImportadas,
-        @errCont AS filasConError
+        @okCont  AS filasImportadas,
+        @errCont AS filasConError,
+        @addCont AS filasAgregadas,
+        @modCont AS filasModificadas
 
     IF @errCont > 0
         PRINT 'Errores encontrados: ' + @errTxt
@@ -355,6 +380,7 @@ GO
 -- IMPORTACION Guias
 -- https://data.buenosaires.gob.ar/dataset/registro-guias-turismo/resource/juqdkmgo-1791-resource
 -- FORMATO: .csv
+-- RUTA: C:\Datasets\registro-de-guias-de-turismo.csv
 -- ============================================================
 USE ParquesNacionales
 GO
@@ -375,7 +401,7 @@ BEGIN
     )
 
     BULK INSERT #GuiasTurismo
-    FROM 'C:\Datasets\registro-de-guias-de-turismo.csv'
+    FROM 'C:\Datasets\registro-de-guias-de-turismo_TEST.csv'
     WITH (
         FIRSTROW = 2,
         FIELDTERMINATOR = ';',
@@ -404,6 +430,8 @@ BEGIN
             @errFila      VARCHAR(500),
             @okCont       INT = 0,
             @errCont      INT = 0,
+            @addCont      INT = 0,
+            @modCont      INT = 0,
             @errTxt       VARCHAR(MAX) = '',
             @idGuia       INT,
             @fechaNac     DATE,
@@ -426,33 +454,37 @@ BEGIN
     FETCH NEXT FROM cur INTO @periodoStr, @apellido, @nombre, @tipoDoc, @numeroDoc, @nRegistro, @categoria
 
     WHILE @@FETCH_STATUS = 0
-        BEGIN   SET @errFila = ''
+        BEGIN
+        SET @errFila = ''
+
+        SET @numeroDoc = NULLIF(TRIM(@numeroDoc), '')
 
         IF @periodoStr NOT LIKE '[0-9][0-9][0-9][0-9]'
-            SET @errFila += 'periodo invalido ("' + @periodoStr + '"). '
+            SET @errFila += 'periodo invalido. '
         
         IF @apellido IS NULL
-            SET @errFila += 'apellido vacio ("' + @apellido + '"). '
+            SET @errFila += 'apellido vacio. '
 
         IF @nombre IS NULL
-            SET @errFila += 'nombre vacio ("' + @nombre + '"). '
+            SET @errFila += 'nombre vacio. '
 
         IF @tipoDoc IS NULL
-            SET @errFila += 'tipoDocumento vacio ("' + @tipoDoc + '"). '
+            SET @errFila += 'tipoDocumento vacio. '
 
-        IF ISNUMERIC(@numeroDoc) = 0 OR @numeroDoc IS NULL OR TRIM(@numeroDoc) = ''
-            SET @errFila += 'numeroDocumento invalido ("' + @numeroDoc + '"). '
+        IF @numeroDoc IS NULL OR ISNUMERIC(@numeroDoc) = 0
+            SET @errFila += 'numeroDocumento invalido. '
 
         IF @nRegistro IS NULL
-            SET @errFila += 'nRegistro vacio ("' + @nRegistro + '"). '
+            SET @errFila += 'nRegistro vacio. '
 
         IF @categoria IS NULL
-            SET @errFila += 'categoria vacia ("' + @categoria + '"). '
+            SET @errFila += 'categoria vacia. '
 
         IF @errFila <> ''
         BEGIN
             SET @errTxt += CHAR(10) +
-                ' [' + @tipoDoc + ' | ' + @numeroDoc + ']: ' + @errFila
+                CONCAT(' [', @periodoStr, ' | ', @apellido, ' | ', @nombre, ' | ', @tipoDoc,
+                       ' | ',@numeroDoc, ' | ', @nRegistro, ' | ', @categoria, ']: ', @errFila)
             SET @errCont += 1
             GOTO SigFila
         END
@@ -472,6 +504,8 @@ BEGIN
 
                 EXEC Guias.sp_ModificacionGuia
                     @idGuia, @nombre, @apellido, @fechaNac, @tipoDoc, @numeroDoc, @email, @vigAut
+
+                SET @modCont += 1
             END
 
         ELSE
@@ -480,6 +514,8 @@ BEGIN
 
                 EXEC Guias.sp_AltaGuia
                     @nombre, @apellido, '2000-01-01', @tipoDoc, @numeroDoc, @emailDin, '2030-01-01'
+
+                SET @addCont += 1
             END
         
         SET @okCont += 1
@@ -492,8 +528,10 @@ BEGIN
     DEALLOCATE cur
             
     SELECT
-        @okCont AS filasImportadas,
-        @errCont AS filasConError
+        @okCont  AS filasImportadas,
+        @errCont AS filasConError,
+        @addCont AS filasAgregadas,
+        @modCont AS filasModificadas
 
     IF @errCont > 0
         PRINT 'Errores encontrados: ' + @errTxt

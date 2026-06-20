@@ -1,5 +1,19 @@
 -- ============================================================
+-- Fecha: 2025-06-20
+-- Descripción: Testing para la Importacion de Archivos.
+--		Los lotes de prueba se encuentran en los archivos.
+-- ============================================================
+-- ============================================================
+-- INTEGRANTES
+--  Ayala Bustos, Gustavo Gabriel
+--  Bonfigli, Leonardo
+--  Casale Benavente, Pedro Santino
+--  Martinez Souto, Joaquin
+-- ============================================================
+
+-- ============================================================
 -- TESTING Parques y TiposParque
+-- RUTA: C:\Datasets\af_ha007__rea_protegida_argentina_geojson_TEST.txt
 -- ============================================================
 USE ParquesNacionales
 GO
@@ -23,6 +37,7 @@ SELECT * FROM Importacion.VisitasParquesNacionales
 
 -- ============================================================
 -- TESTING Guias registrados
+-- RUTA: C:\Datasets\registro-de-guias-de-turismo_TEST.csv
 -- ============================================================
 USE ParquesNacionales
 GO
