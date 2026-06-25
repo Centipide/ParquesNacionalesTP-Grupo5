@@ -1,0 +1,10 @@
+-- ============================================================
+-- Fecha: 2025-06-25
+-- Descripción: Actualizar La logica de importacion con datos encriptados
+-- ============================================================
+-- INTEGRANTES
+--  Ayala Bustos, Gustavo Gabriel
+--  Bonfigli, Leonardo
+--  Casale Benavente, Pedro Santino
+--  Martinez Souto, Joaquin
+-- ============================================================

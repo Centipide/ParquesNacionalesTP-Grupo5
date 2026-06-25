@@ -13,7 +13,9 @@
 -- ============================================================
 -- PASO 1: Agregar columnas cifradas (VARBINARY) sin tocar
 --         las originales, para no romper el sistema existente.
---         Las columnas originales se eliminaran al final.
+--
+--         Las columnas originales se conservarán durante la migración y 
+--         podrán eliminarse una vez validado el proceso.
 -- ============================================================
 
 --++++++++++++++++++++++++ Visitante ++++++++++++++++++++++++
@@ -228,25 +230,3 @@ BEGIN
     WHERE idGuardaparque = @idGuardaparque;
 END;
 GO
-
--- ============================================================
--- PASO 4 (IMPORTANTE - ejecutar solo cuando se confirme el cifrado):
---         Limpiar las columnas en texto plano.
---         ADVERTENCIA: irreversible si no guardamos la frase clave.
--- ============================================================
-
-/*
--- Ejecutar solo luego de verificar que el descifrado funciona correctamente.
-
-UPDATE Ventas.Visitante      SET email = NULL, telefono = NULL;
-UPDATE Guias.Guia            SET email = NULL, nroDocumento = NULL;
-UPDATE Personal.Guardaparque SET email = NULL, nroDocumento = NULL;
-
-*/
-
-/*
--- ============================================================
--- PASO 5 Borrar las columnas en texto plano
--- ============================================================
-
-*/
