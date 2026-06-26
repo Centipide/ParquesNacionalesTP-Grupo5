@@ -14,37 +14,7 @@ USE ParquesNacionales;
 GO
 
 -- ============================================================
--- SECCIÓN 1: LIMPIEZA PREVENTIVA
--- ============================================================
-
-
--- Limpiar logins/usuarios de prueba si ya existían
-
--- ============================================================
--- LIMPIEZA DE USUARIOS
--- ============================================================
-
-IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'usr_admin')
-    DROP USER usr_admin;
-
-IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'usr_boleteria')
-    DROP USER usr_boleteria;
-
-IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'usr_guias')
-    DROP USER usr_guias;
-
-IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'usr_importador')
-    DROP USER usr_importador;
-
-IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'usr_reportes')
-    DROP USER usr_reportes;
-
-IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'usr_auditor')
-    DROP USER usr_auditor;
-GO
-
--- ============================================================
--- LIMPIEZA DE ROLES
+-- SECCION 1: LIMPIEZA DE ROLES
 -- ============================================================
 
 IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'rol_Administrador')
@@ -64,29 +34,6 @@ IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'rol_Reportes')
 
 IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'rol_Auditor')
     DROP ROLE rol_Auditor;
-GO
-
--- ============================================================
--- LIMPIEZA DE LOGINS
--- ============================================================
-
-IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'login_admin')
-    DROP LOGIN login_admin;
-
-IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'login_boleteria')
-    DROP LOGIN login_boleteria;
-
-IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'login_guias')
-    DROP LOGIN login_guias;
-
-IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'login_importador')
-    DROP LOGIN login_importador;
-
-IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'login_reportes')
-    DROP LOGIN login_reportes;
-
-IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'login_auditor')
-    DROP LOGIN login_auditor;
 GO
 
 
@@ -179,76 +126,12 @@ GRANT SELECT ON SCHEMA::Ventas        TO rol_Auditor;
 GRANT SELECT ON SCHEMA::Importacion   TO rol_Auditor;
 
 -- ============================================================
--- SECCIÓN 4: CREACIÓN DE LOGINS Y USUARIOS DE EJEMPLO
--- Un login por rol para demostración. En producción cada
--- persona tendría su propio login asignado al rol que le
--- corresponda según su función.
+-- SECCIÓN 4: VERIFICACION DE ROLES
 -- ============================================================
 
--- Logins a nivel servidor
-CREATE LOGIN login_admin      WITH PASSWORD = 'Admin#2026!';
-CREATE LOGIN login_boleteria  WITH PASSWORD = 'Bolet3r!a26';
-CREATE LOGIN login_guias      WITH PASSWORD = 'Gu14s#2026!';
-CREATE LOGIN login_importador WITH PASSWORD = 'Imp0rt#2026';
-CREATE LOGIN login_reportes   WITH PASSWORD = 'Rep0rt3s#26';
-CREATE LOGIN login_auditor    WITH PASSWORD = 'Aud1t0r#26!';
-GO
+-- Consulta para verificar los roles creados
 
--- Usuarios en la base ParquesNacionales
-CREATE USER usr_admin      FOR LOGIN login_admin;
-CREATE USER usr_boleteria  FOR LOGIN login_boleteria;
-CREATE USER usr_guias      FOR LOGIN login_guias;
-CREATE USER usr_importador FOR LOGIN login_importador;
-CREATE USER usr_reportes   FOR LOGIN login_reportes;
-CREATE USER usr_auditor    FOR LOGIN login_auditor;
-GO
-
--- Asignación de roles
-ALTER ROLE rol_Administrador  ADD MEMBER usr_admin;
-ALTER ROLE rol_Boleteria      ADD MEMBER usr_boleteria;
-ALTER ROLE rol_GestionGuias   ADD MEMBER usr_guias;
-ALTER ROLE rol_Importador     ADD MEMBER usr_importador;
-ALTER ROLE rol_Reportes       ADD MEMBER usr_reportes;
-ALTER ROLE rol_Auditor        ADD MEMBER usr_auditor;
-GO
-
-
--- ============================================================
--- SECCIÓN 5: VERIFICACIÓN
--- Consultas para confirmar que los permisos quedaron bien.
--- ============================================================
-
--- Ver todos los roles creados
-SELECT name AS rol, type_desc
-FROM sys.database_principals
-WHERE type = 'R'
-  AND name LIKE 'rol_%'
+SELECT name AS Nombre_Rol 
+FROM sys.database_principals 
+WHERE type = 'R' 
 ORDER BY name;
-
--- Ver qué usuarios pertenecen a cada rol
-SELECT
-    dr.name  AS rol,
-    dp.name  AS usuario
-FROM sys.database_role_members drm
-JOIN sys.database_principals dr ON drm.role_principal_id   = dr.principal_id
-JOIN sys.database_principals dp ON drm.member_principal_id = dp.principal_id
-WHERE dr.name LIKE 'rol_%'
-ORDER BY dr.name, dp.name;
-
--- Ver permisos EXECUTE asignados a cada rol
-SELECT
-    dp.name AS Rol,
-    p.permission_name,
-    p.class_desc,
-    CASE
-        WHEN p.class_desc = 'SCHEMA'
-            THEN SCHEMA_NAME(p.major_id)
-        WHEN p.class_desc = 'OBJECT_OR_COLUMN'
-            THEN OBJECT_NAME(p.major_id)
-        ELSE NULL
-    END AS Objeto
-FROM sys.database_permissions p
-JOIN sys.database_principals dp
-    ON p.grantee_principal_id = dp.principal_id
-WHERE dp.name LIKE 'rol_%'
-ORDER BY dp.name;
