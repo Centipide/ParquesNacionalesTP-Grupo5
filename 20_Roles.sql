@@ -70,12 +70,15 @@ GRANT SELECT TO rol_Administrador;
 -- ============================================================
 -- 3.2  rol_Boleteria
 -- Venta de entradas y contratación de actividades.
--- Puede dar de alta visitantes y consultar precios.                    !!!!!!!!!!(FALTA ESTO)
+-- Puede dar de alta visitantes y consultar precios. 
 -- NO puede modificar precios ni anular ventas.
 -- ============================================================
 
 GRANT EXECUTE ON Ventas.sp_AltaVisitante              TO rol_Boleteria;
 GRANT EXECUTE ON Ventas.sp_RegistrarVentaEntradas     TO rol_Boleteria;
+GRANT SELECT ON Ventas.Entrada                        TO rol_Boleteria;
+GRANT SELECT ON Ventas.TipoVisitante                  TO rol_Boleteria;
+GRANT SELECT ON Parques.Parque                        TO rol_Boleteria;
 GO
 
 
