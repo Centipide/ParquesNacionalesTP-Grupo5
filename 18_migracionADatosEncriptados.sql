@@ -13,6 +13,8 @@
 USE ParquesNacionales
 GO
 
+SELECT * FROM Guias.Guia
+
 EXEC Importacion.sp_CifrarVisitantes @FraseClave = 'claveVisitantes';
 EXEC Importacion.sp_CifrarGuias @FraseClave = 'ClavesGuias';
 EXEC Importacion.sp_CifrarGuardaparques @FraseClave = 'ClaveGuardaparques';
@@ -66,6 +68,8 @@ ALTER COLUMN email VARCHAR(150) NULL;
 UPDATE Ventas.Visitante      SET email = NULL, telefono = NULL;
 UPDATE Guias.Guia            SET email = NULL, nroDocumento = NULL;
 UPDATE Personal.Guardaparque SET email = NULL, nroDocumento = NULL;
+
+SELECT * FROM Guias.Guia
 
 */
 
