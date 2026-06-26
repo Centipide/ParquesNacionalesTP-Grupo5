@@ -26,6 +26,9 @@ IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'rol_Boleteria')
 IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'rol_GestionGuias')
     DROP ROLE rol_GestionGuias;
 
+IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'rol_Personal')
+    DROP ROLE rol_GestionGuias;
+
 IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'rol_Importador')
     DROP ROLE rol_Importador;
 
@@ -44,6 +47,7 @@ GO
 CREATE ROLE rol_Administrador;
 CREATE ROLE rol_Boleteria;
 CREATE ROLE rol_GestionGuias;
+CREATE ROLE rol_Personal;
 CREATE ROLE rol_Importador;
 CREATE ROLE rol_Reportes;
 CREATE ROLE rol_Auditor;
@@ -88,9 +92,15 @@ GRANT EXECUTE ON Actividades.sp_CancelarActividadProgramada TO rol_GestionGuias;
 GRANT EXECUTE ON Actividades.sp_CancelarContratacion        TO rol_GestionGuias;
 GO
 
+-- ============================================================
+-- 3.4  rol_Personal
+-- ABM de guardaparques e historial de cargos.
+-- ============================================================
+
+GRANT EXECUTE ON SCHEMA::Personal TO rol_Personal;
 
 -- ============================================================
--- 3.4  rol_Importador
+-- 3.5  rol_Importador
 -- Exclusivamente: ejecutar los SPs de importación masiva.
 -- No puede leer ni escribir datos de otra forma.
 -- ============================================================
@@ -100,7 +110,7 @@ GO
 
 
 -- ============================================================
--- 3.5  rol_Reportes
+-- 3.6  rol_Reportes
 -- Solo ejecutar SPs de reportes.
 -- No puede modificar ningún dato.
 -- ============================================================
@@ -109,7 +119,7 @@ GRANT EXECUTE ON SCHEMA::Reportes TO rol_Reportes;
 GO
 
 -- ============================================================
--- 3.6  rol_Auditor
+-- 3.7  rol_Auditor
 -- SELECT directo sobre tablas para auditoría.
 -- Ve los datos tal como están almacenados:
 -- columnas cifradas aparecen como VARBINARY (ilegibles).
