@@ -141,6 +141,15 @@ BEGIN
        AND @email NOT LIKE '%_@__%.__%'
         SET @errores += '- El formato del correo electrónico ingresado no es válido.' + CHAR(10);
 
+
+    IF EXISTS (
+        SELECT 1 FROM Personal.Guardaparque
+        WHERE tipoDocumento = @tipoDocumento
+            AND CONVERT(VARCHAR(20), DecryptByPassPhrase(@FraseClave, nroDocumentoCifrado, 1, CONVERT(VARBINARY, idGuardaparque))) = @nroDocumento
+    )
+        SET @errores += '- Tipo y Nro de documento ya existen.' + CHAR(10)
+
+
     IF @errores <> ''
     BEGIN
         RAISERROR(@errores, 16, 1);
@@ -197,6 +206,14 @@ BEGIN
        AND @email NOT LIKE '%_@__%.__%'
         SET @errores += '- El formato del correo electrónico ingresado no es válido.' + CHAR(10);
 
+    IF EXISTS (
+        SELECT 1 FROM Personal.Guardaparque
+        WHERE tipoDocumento = @tipoDocumento
+        AND CONVERT(VARCHAR(20), DecryptByPassPhrase(@FraseClave, nroDocumentoCifrado, 1, CONVERT(VARBINARY, idGuardaparque))) = @nroDocumento
+        AND idGuardaparque != @idGuardaparque
+    )
+        SET @errores += '- Documento ya existente' + CHAR(10)
+
     IF @errores <> ''
     BEGIN
         RAISERROR(@errores, 16, 1);
@@ -246,6 +263,14 @@ BEGIN
 
     IF @fechaNacimiento IS NULL
         SET @errores += 'Fecha de nacimiento no ingresada.' + CHAR(10);
+
+    IF EXISTS (
+        SELECT 1 FROM Guias.Guia
+        WHERE tipoDocumento = @tipoDocumento
+            AND CONVERT(VARCHAR(20), DecryptByPassPhrase(@FraseClave, nroDocumentoCifrado, 1, CONVERT(VARBINARY, idGuia))) = @nroDocumento
+    )
+        SET @errores += '- Tipo y Nro de documento ya existen.' + CHAR(10)
+
 
     IF @email IS NOT NULL
        AND LTRIM(RTRIM(@email)) <> ''
@@ -301,6 +326,15 @@ BEGIN
         WHERE idGuia = @idGuia
     )
         SET @errores += 'El id de guia ingresado no existe.' + CHAR(10);
+
+     IF EXISTS (
+        SELECT 1 FROM Guias.Guia
+        WHERE tipoDocumento = @tipoDocumento
+        AND CONVERT(VARCHAR(20), DecryptByPassPhrase(@FraseClave, nroDocumentoCifrado, 1, CONVERT(VARBINARY, idGuia))) = @nroDocumento
+        AND idGuia != @idGuia
+    )
+        SET @errores += '- Documento ya existente' + CHAR(10)
+
 
     IF @email IS NOT NULL
        AND LTRIM(RTRIM(@email)) <> ''
