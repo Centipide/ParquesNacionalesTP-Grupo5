@@ -8,7 +8,8 @@
 --  Casale Benavente, Pedro Santino
 --  Martinez Souto, Joaquin
 -- ============================================================
-
+USE ParquesNacionales
+GO
 
 -- ESCENARIO A: Traer todo el historial completo de todos los parques
 -- (Ideal para ver el comportamiento global del sistema)

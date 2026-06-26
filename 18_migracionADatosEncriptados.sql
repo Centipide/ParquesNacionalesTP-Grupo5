@@ -92,3 +92,6 @@ DROP COLUMN email, nroDocumento;
 ALTER TABLE Personal.Guardaparque
 DROP COLUMN email, nroDocumento;
 */
+
+
+SELECT * FROM Guias.Guia

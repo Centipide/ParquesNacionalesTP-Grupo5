@@ -15,9 +15,9 @@
 -- Se puede desencriptar correctamente con la frase clave
 -- Luego de una modificación, los datos cifrados se actualizaron correctamente.
 
--- ==========================================================
--- TABLA Visitante
--- ==========================================================
+-- ============================================================
+-- CASO EXITOSO - Visitante
+-- ============================================================
 
 USE ParquesNacionales
 GO
@@ -81,15 +81,21 @@ BEGIN TRY
 
 END TRY
 BEGIN CATCH
-    PRINT ERROR_MESSAGE();
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
 END CATCH;
 
 ROLLBACK TRANSACTION;
 GO
 
--- ==========================================================
--- TABLA Guardaparque
--- ==========================================================
+
+-- ============================================================
+-- CASO EXITOSO - Guardaparque
+-- ============================================================
+
+USE ParquesNacionales
+GO
 
 BEGIN TRANSACTION;
 BEGIN TRY
@@ -147,16 +153,132 @@ BEGIN TRY
 
 END TRY
 BEGIN CATCH
-    PRINT ERROR_MESSAGE();
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
 END CATCH;
 
 ROLLBACK TRANSACTION;
 GO
 
--- ==========================================================
--- TABLA Guia
--- ==========================================================
+-- ************************************************************
+-- CASO DE ERROR - Alta GuardaParque
+-- ************************************************************
 
+USE ParquesNacionales
+GO
+
+-- tipo y nro de documento repetidos
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    DECLARE @idGuardaparque INT;
+    DECLARE @FraseClave NVARCHAR(125)='FraseSecreta123';
+
+    EXEC Personal.sp_AltaGuardaparque
+        @nombre='TEST_Juan',
+        @apellido='Perez',
+        @fechaNacimiento='1990-05-15',
+        @tipoDocumento='DNI',
+        @nroDocumento='40111222',
+        @email='juan@test.com',
+        @fechaIngresoCargo='2023-01-01',
+        @FraseClave=@FraseClave;
+    
+    EXEC Personal.sp_AltaGuardaparque
+        @nombre='TEST_Juan',
+        @apellido='Perez',
+        @fechaNacimiento='1990-05-15',
+        @tipoDocumento='DNI',
+        @nroDocumento='40111222',
+        @email='juan@test.com',
+        @fechaIngresoCargo='2023-01-01',
+        @FraseClave=@FraseClave;
+
+END TRY
+BEGIN CATCH
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+END CATCH;
+ROLLBACK TRANSACTION;
+GO
+
+-- ************************************************************
+-- CASO DE ERROR - Modificación Guardaparque
+-- ************************************************************
+
+USE ParquesNacionales
+GO
+
+-- Documento repetido
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    DECLARE @FraseClave NVARCHAR(125) = 'FraseSecreta123';
+
+    -- Primer guardaparque
+    EXEC Personal.sp_AltaGuardaparque
+        @nombre='TEST_Juan',
+        @apellido='Perez',
+        @fechaNacimiento='1990-05-15',
+        @tipoDocumento='DNI',
+        @nroDocumento='40111222',
+        @email='juan1@test.com',
+        @fechaIngresoCargo='2023-01-01',
+        @FraseClave=@FraseClave;
+
+    -- Segundo guardaparque
+    EXEC Personal.sp_AltaGuardaparque
+        @nombre='TEST_Pedro',
+        @apellido='Gomez',
+        @fechaNacimiento='1992-08-10',
+        @tipoDocumento='DNI',
+        @nroDocumento='40999888',
+        @email='juan2@test.com',
+        @fechaIngresoCargo='2023-02-01',
+        @FraseClave=@FraseClave;
+
+    DECLARE @idGuardaparque INT;
+
+    SELECT @idGuardaparque = idGuardaparque
+    FROM Personal.Guardaparque
+    WHERE nombre = 'TEST_Pedro'
+      AND apellido = 'Gomez';
+
+    -- Intento modificar para usar un documento ya existente
+    EXEC Personal.sp_ModificacionGuardaparque
+        @idGuardaparque = @idGuardaparque,
+        @nombre = 'TEST_Pedro',
+        @apellido = 'Gomez',
+        @fechaNacimiento = '1992-08-10',
+        @tipoDocumento = 'DNI',
+        @nroDocumento = '40111222',   -- Ya pertenece al primer guardaparque
+        @email = 'juan2@test.com',
+        @fechaIngresoCargo = '2023-02-01',
+        @fechaEgresoCargo = NULL,
+        @motivoEgreso = NULL,
+        @estaActivo = 1,
+        @FraseClave = @FraseClave;
+
+END TRY
+BEGIN CATCH
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
+
+
+
+-- ============================================================
+-- CASOS EXITOSO - Guia
+-- ============================================================
+
+USE ParquesNacionales
+GO
 
 BEGIN TRANSACTION;
 BEGIN TRY
@@ -211,7 +333,116 @@ BEGIN TRY
 
 END TRY
 BEGIN CATCH
-    PRINT ERROR_MESSAGE();
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
+
+-- ************************************************************
+-- CASO DE ERROR - Alta Guia
+-- ************************************************************
+
+USE ParquesNacionales
+GO
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    DECLARE @idGuia INT;
+    DECLARE @FraseClave NVARCHAR(125)='FraseSecreta123';
+
+    EXEC Guias.sp_AltaGuia
+        @nombre='TEST_Mario',
+        @apellido='Lopez',
+        @fechaNacimiento='1995-08-10',
+        @tipoDocumento='DNI',
+        @nroDocumento='38999111',
+        @email='mario@test.com',
+        @vigenciaAutorizacion='2030-01-01',
+        @FraseClave=@FraseClave;
+
+    EXEC Guias.sp_AltaGuia
+        @nombre='TEST_Mario',
+        @apellido='Lopez',
+        @fechaNacimiento='1995-08-10',
+        @tipoDocumento='DNI',
+        @nroDocumento='38999111',
+        @email='mario@test.com',
+        @vigenciaAutorizacion='2030-01-01',
+        @FraseClave=@FraseClave;
+
+END TRY
+BEGIN CATCH
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
+END CATCH;
+
+ROLLBACK TRANSACTION;
+GO
+
+-- ************************************************************
+-- CASO DE ERROR - Modificacion Guia
+-- ************************************************************
+
+USE ParquesNacionales
+GO
+
+-- documento repetido
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    DECLARE @FraseClave NVARCHAR(125) = 'FraseSecreta123';
+
+    -- Primer guía
+    EXEC Guias.sp_AltaGuia
+        @nombre = 'TEST_Juan',
+        @apellido = 'Perez',
+        @fechaNacimiento = '1990-05-15',
+        @tipoDocumento = 'DNI',
+        @nroDocumento = '40111222',
+        @email = 'juan1@test.com',
+        @vigenciaAutorizacion = '2030-01-01',
+        @FraseClave = @FraseClave;
+
+    -- Segundo guía
+    EXEC Guias.sp_AltaGuia
+        @nombre = 'TEST_Pedro',
+        @apellido = 'Gomez',
+        @fechaNacimiento = '1992-08-10',
+        @tipoDocumento = 'DNI',
+        @nroDocumento = '40999888',
+        @email = 'juan2@test.com',
+        @vigenciaAutorizacion = '2030-01-01',
+        @FraseClave = @FraseClave;
+
+    DECLARE @idGuia INT;
+
+    SELECT @idGuia = idGuia
+    FROM Guias.Guia
+    WHERE nombre = 'TEST_Pedro'
+      AND apellido = 'Gomez';
+
+    -- Intento modificar para usar un documento ya existente
+    EXEC Guias.sp_ModificacionGuia
+        @idGuia = @idGuia,
+        @nombre = 'TEST_Pedro',
+        @apellido = 'Gomez',
+        @fechaNacimiento = '1992-08-10',
+        @tipoDocumento = 'DNI',
+        @nroDocumento = '40111222',   -- Ya pertenece al primer guía
+        @email = 'juan2@test.com',
+        @vigenciaAutorizacion = '2030-01-01',
+        @FraseClave = @FraseClave;
+
+END TRY
+BEGIN CATCH
+    SELECT value AS Error
+    FROM STRING_SPLIT(ERROR_MESSAGE(), CHAR(10))
+    WHERE value <> '';
 END CATCH;
 
 ROLLBACK TRANSACTION;
