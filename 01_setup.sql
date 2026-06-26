@@ -14,6 +14,10 @@
 USE master;
 GO
 
+ALTER LOGIN sa WITH PASSWORD = 'Grupo05_tp2026';
+ALTER LOGIN sa ENABLE;
+GO
+
 IF EXISTS (SELECT name FROM sys.databases WHERE name = N'ParquesNacionales')
 BEGIN
     PRINT 'La base de datos existe. Procediendo a eliminarla...';

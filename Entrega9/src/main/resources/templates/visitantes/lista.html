@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Administración de Visitantes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <div class="container mt-5">
+        <div class="card shadow">
+			<div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+			    <h3 class="mb-0">Padrón Central de Visitantes</h3>
+			    <div>
+			        <a th:href="@{/visitantes/reporte-xml}" class="btn btn-warning fw-bold text-dark me-2">
+			            Descargar Matriz de Visitas Anual (XML)
+			        </a>
+			        <a th:href="@{/visitantes/nuevo}" class="btn btn-success fw-bold">+ Registrar Nuevo</a>
+			    </div>
+			</div>
+            <div class="card-body">
+                
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre Completo</th>
+                            <th>E-mail</th>
+                            <th>Dirección</th>
+                            <th>Teléfono</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="vis : ${listaVisitantes}">
+                            <td th:text="${vis.idVisitante}" class="fw-bold"></td>
+                            <td th:text="${vis.apellido + ', ' + vis.nombre}"></td>
+                            <td th:text="${vis.email != null ? vis.email : 'N/A'}" class="text-muted"></td>
+                            <td th:text="${vis.direccion != null ? vis.direccion : 'N/A'}"></td>
+                            <td th:text="${vis.telefono != null ? vis.telefono : 'N/A'}"></td>
+                            <td class="text-center">
+                                <a th:href="@{/visitantes/editar/{id}(id=${vis.idVisitante})}" class="btn btn-warning btn-sm me-2 fw-bold">Editar</a>
+                                <a th:href="@{/visitantes/eliminar/{id}(id=${vis.idVisitante})}" 
+                                   class="btn btn-danger btn-sm fw-bold"
+                                   onclick="return confirm('¿Está seguro de eliminar este visitante de los registros?');">Borrar</a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(listaVisitantes)}">
+                            <td colspan="6" class="text-center text-muted py-4">No hay visitantes cargados en el sistema.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

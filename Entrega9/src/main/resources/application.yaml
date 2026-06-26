@@ -1,0 +1,18 @@
+server:
+  port: 8090
+
+spring:
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=ParquesNacionales;encrypt=true;trustServerCertificate=true;
+    username: sa
+    password: Grupo05_tp2026
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl

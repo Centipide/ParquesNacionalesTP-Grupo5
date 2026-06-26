@@ -3,3 +3,48 @@
 *.user
 *.suo
 *.vs
+
+# --- carpetas de compilación e intermediarios de Maven ---
+target/
+*.jar
+*.war
+*.ear
+*.nar
+*.car
+*.jack
+
+# --- Archivos específicos de Eclipse ---
+.settings/
+.placeholder
+.classpath
+.project
+bin/
+.metadata/
+
+# --- Archivos específicos de IntelliJ IDEA ---
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# --- Archivos del Sistema Operativo ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Carpetas de compilación (Obligatorio) ---
+target/
+classes/
+test-classes/
+
+# --- Archivos específicos de Eclipse ---
+.settings/
+.classpath
+.project
+bin/
+
+# --- Archivos específicos de IntelliJ / VS Code ---
+.idea/
+*.iml
+.vscode/
