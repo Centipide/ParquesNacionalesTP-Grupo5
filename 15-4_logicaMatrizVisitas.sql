@@ -13,44 +13,41 @@
 -- ========================================================================
 -- 4. MATRIZ DE VISITAS
 -- ========================================================================
-USE ParquesNacionales;
+USE ParquesNacionales
 GO
 
 CREATE OR ALTER PROCEDURE Reportes.sp_MatrizVisitasXML
     @anio INT = NULL
 AS
 BEGIN
-    SET NOCOUNT ON;
+    SET NOCOUNT ON
 
-    IF @anio IS NULL SET @anio = YEAR(GETDATE());
+    IF @anio IS NULL SET @anio = YEAR(GETDATE())
 
-    -- Construir PIVOT dinámico sobre los parques del año
-    DECLARE @parques   NVARCHAR(MAX) = '';
-    DECLARE @colSelect NVARCHAR(MAX) = '';
+    DECLARE @parques   NVARCHAR(MAX) = ''
+    DECLARE @colSelect NVARCHAR(MAX) = ''
 
     SELECT
-        @parques   += ',' + QUOTENAME(nombre),
-        @colSelect += ',ISNULL(' + QUOTENAME(nombre) + ',0) AS ' + QUOTENAME(nombre)
+        @parques   += ',' + QUOTENAME(REPLACE(nombre, ' ', '_')),
+        @colSelect += ',ISNULL(' + QUOTENAME(REPLACE(nombre, ' ', '_')) + ',0) AS ' + QUOTENAME(REPLACE(nombre, ' ', '_'))
     FROM (
         SELECT DISTINCT p.nombre
         FROM Ventas.DetalleVenta dv
         INNER JOIN Ventas.Entrada e ON e.idEntrada = dv.idEntrada
         INNER JOIN Parques.Parque p ON p.idParque  = e.idParque
-        WHERE YEAR(dv.fechaAcceso) = @anio
+        WHERE YEAR(dv.FechaAcceso) = @anio
     ) t
-    ORDER BY t.nombre;
 
     IF @parques = ''
     BEGIN
-        -- Sin datos: retornar XML vacío
         SELECT (
-            SELECT @anio AS anio, 'Sin datos de visitas para ese año' AS mensaje
+            SELECT 'Sin datos de visitas para ese año' AS mensaje
             FOR XML PATH('MatrizVisitas'), ROOT('Reporte'), TYPE
-        );
-        RETURN;
+        )
+        RETURN
     END
 
-    SET @parques = STUFF(@parques, 1, 1, '');
+    SET @parques = STUFF(@parques, 1, 1, '')
 
     DECLARE @sql NVARCHAR(MAX) = N'
     SELECT (
@@ -64,7 +61,7 @@ BEGIN
                     SELECT
                         MONTH(dv.FechaAcceso)           AS mes,
                         DATENAME(MONTH, dv.FechaAcceso) AS nombre_mes,
-                        p.nombre                        AS parque,
+                        REPLACE(p.nombre, '' '', ''_'') AS parque,
                         SUM(dv.Cantidad)                AS visitas
                     FROM Ventas.DetalleVenta dv
                     INNER JOIN Ventas.Entrada e ON e.idEntrada = dv.idEntrada
@@ -79,10 +76,10 @@ BEGIN
                 FOR XML PATH(''Mes''), TYPE
             )
         FOR XML PATH(''MatrizVisitas''), TYPE
-    );'
+    )'
 
-    EXEC sp_executesql @sql;
+    EXEC sp_executesql @sql
 END
 GO
 
-EXEC Reportes.sp_MatrizVisitasXML
+--EXEC Reportes.sp_MatrizVisitasXML
